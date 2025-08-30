@@ -329,7 +329,7 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 
-const botURL = 'https://bot-seiko.onrender.com';
+const botURL = 'https://al-ex-jiao.onrender.com';
 
 function pingUrl(url) {
   const lib = url.startsWith('https') ? https : http;
