@@ -8,7 +8,7 @@ module.exports.config = {
     usages: "[Name module]",
     cooldowns: 5,
     envConfig: {
-        autoUnsend: true,
+        autoUnsend: false, // تم تعديلها لمنع الحذف التلقائي
         delayUnsend: 20
     }
 };
@@ -41,7 +41,6 @@ module.exports.run = function({ api, event, args, getText }) {
     const { threadID, messageID } = event;
     const command = commands.get((args[0] || "").toLowerCase());
     const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-    const { autoUnsend, delayUnsend } = global.configModule[this.config.name];
     const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
 
     if (!command) {
@@ -66,11 +65,8 @@ module.exports.run = function({ api, event, args, getText }) {
         }
 
         const text = `╰───────────────────╯\n\n📜 الصفحة (${page}/${Math.ceil(arrayInfo.length / numberOfOnePage)})\n📟 اكتب: ${prefix}اوامر [رقم الصفحة]\n🔢 مجموع الأوامر: ${arrayInfo.length}`;
-        return api.sendMessage(msg + text, threadID, async (error, info) => {
-            if (autoUnsend) {
-                await new Promise(resolve => setTimeout(resolve, delayUnsend * 1000)); // تعديل إلى 1000 لأن الوقت بالمللي ثانية
-                return api.unsendMessage(info.messageID);
-            } else return;
+        return api.sendMessage(msg + text, threadID, (error, info) => {
+            // تم إزالة الكود الخاص بالحذف التلقائي
         });
     }
 
