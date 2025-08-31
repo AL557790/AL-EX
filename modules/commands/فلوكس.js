@@ -4,10 +4,10 @@ const path = require('path');
 
 module.exports.config = {
     name: "فلوكس",
-    version: "1.0.1",
+    version: "1.0.2",
     hasPermssion: 0,
     credits: "Mod by You",
-    description: "إنشاء صور باستخدام DALL-E 3",
+    description: "إنشاء صور باستخدام Flux API",
     commandCategory: "صور",
     usages: "فلوكس [نص]",
     cooldowns: 5
@@ -18,19 +18,13 @@ module.exports.run = async ({ api, event, args }) => {
         if (!args[0]) return api.sendMessage("يرجى إدخال نص لإنشاء الصورة!", event.threadID);
 
         const prompt = args.join(" ");
-        const url = "http://flux-nobro9735-9yayti5m.leapcell.dev/api/dalle/generate";
+        const url = "http://flux-nobro9735-9yayti5m.leapcell.dev/api/flux/generate";
 
         // إرسال الطلب للـ API
-        const response = await axios({
-            method: 'POST',
-            url: url,
-            data: {
-                prompt: prompt,
-                count: 1
-            },
-            headers: { "Content-Type": "application/json" },
-            responseType: 'arraybuffer' // نطلب استلام البيانات كـ arraybuffer
-        });
+        const response = await axios.post(url, {
+            prompt: prompt,
+            count: 1
+        }, { headers: { "Content-Type": "application/json" }, responseType: 'arraybuffer' });
 
         const imagePath = path.join(__dirname, "flux_result.jpg");
         fs.writeFileSync(imagePath, Buffer.from(response.data, 'binary'));
