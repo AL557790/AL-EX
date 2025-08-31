@@ -4,34 +4,38 @@ const path = require('path');
 
 module.exports.config = {
     name: "فلوكس",
-    version: "1.0.2",
+    version: "1.0.3",
     hasPermssion: 0,
     credits: "Mod by You",
     description: "إنشاء صور باستخدام Flux API",
     commandCategory: "صور",
-    usages: "فلوكس [نص]",
+    usages: "فلوكس [عدد الصور] [نص]",
     cooldowns: 5
 };
 
 module.exports.run = async ({ api, event, args }) => {
     try {
-        if (!args[0]) return api.sendMessage("يرجى إدخال نص لإنشاء الصورة!", event.threadID);
+        if (args.length < 2) return api.sendMessage("الاستعمال: فلوكس [عدد الصور] [النص]", event.threadID);
 
-        const prompt = args.join(" ");
+        const count = parseInt(args[0]);
+        if (isNaN(count) || count < 1 || count > 10) return api.sendMessage("يرجى إدخال عدد صحيح بين 1 و 10", event.threadID);
+
+        const prompt = args.slice(1).join(" ");
         const url = "http://flux-nobro9735-9yayti5m.leapcell.dev/api/flux/generate";
 
         // إرسال الطلب للـ API
         const response = await axios.post(url, {
             prompt: prompt,
-            count: 1
-        }, { headers: { "Content-Type": "application/json" }, responseType: 'arraybuffer' });
+            count: count
+        }, { headers: { "Content-Type": "application/json" } });
 
-        const imagePath = path.join(__dirname, "flux_result.jpg");
-        fs.writeFileSync(imagePath, Buffer.from(response.data, 'binary'));
+        // استلام الصور على شكل روابط
+        const images = response.data.images; // غالبًا الـ API يرجع { images: [url1, url2, ...] }
+        if (!images || images.length === 0) return api.sendMessage("لم يتم إنشاء أي صور.", event.threadID);
 
-        api.sendMessage({ body: "تم إنشاء الصورة:", attachment: fs.createReadStream(imagePath) }, event.threadID, () => {
-            fs.unlinkSync(imagePath);
-        });
+        for (let i = 0; i < images.length; i++) {
+            api.sendMessage({ body: `صورة رقم ${i+1}`, attachment: images[i] }, event.threadID);
+        }
 
     } catch (error) {
         console.error(error.response?.data || error);
