@@ -15,7 +15,7 @@
   "author": "D-Jukie",
   "dependencies": {
     "@distube/ytdl-core": "^4.13.2",
-    "@dongdev/fca-unofficial": "^1.0.0",
+    "@dongdev/fca-unofficial": "^1.0.20",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@miraipr0ject/assets": "^1.0.9",
     "@xaviabot/fca-unofficial": "^1.4.0",
@@ -60,7 +60,7 @@
     "node-schedule": "^2.1.1",
     "node-superfetch": "^0.3.3",
     "npmlog": "",
-    "openai": "^3.3.0",
+    "openai": "^5.16.0",
     "pastebin-api": "^7.0.0",
     "path": "",
     "readline": "",
@@ -74,8 +74,8 @@
     "totp-generator": "",
     "tslib": "^2.6.0",
     "wikijs": "^6.4.1",
-    "ws3-fca": "^1.0.47",
-    "youtube-search-api": "^1.2.1",
+    "ws3-fca": "^3.5.1",
+    "youtube-search-api": "^2.0.1",
     "ytdl-core": "^4.11.5"
   }
 }

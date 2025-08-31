@@ -1,111 +1,178 @@
-[![Socket Badge](https://socket.dev/api/badge/npm/package/fca-shaon)](https://socket.dev/npm/package/fca-shaon)
+# 🚘 ws3-fca
 
-# The following are not allowed here and a little note:
+![Image](wiegine.png)
 
-🎆
+💁 **ws3-fca** is a fully refactored Facebook Chat API (FCA) client built for **reliable**, **real-time**, and **modular** interaction with Facebook Messenger. Designed with modern bot development in mind, it offers full control over Messenger automation through a clean, stable interface.
 
-## Important !
+---
 
-<img width="517" alt="Reason" src="">
-This project is no longer being developed because the project owner lacks high security capabilities, leading to potential security vulnerabilities. Therefore, the project will be permanently suspended.
+## 📚 Documentation & Feedback
 
-Special Thanks: 
-![image](https://github.com/shaonproject2/FCA-SHAON/assets/125113101/0a455054-b7f4-499d-b4b6-c91fd0569ce4)
+Full documentation and advanced examples:
+[https://exocore-dev-docs-exocore.hf.space](https://exocore-dev-docs-exocore.hf.space)
 
-## Important !
+If you encounter issues or want to give feedback, feel free to message us via Facebook:
 
-This package require NodeJS 14.17.0 to work properly.
+* [@Kenneth Aceberos](https://www.facebook.com/Neth.Ace.7/)
+* [@Johnsteve Costaños](https://www.facebook.com/johnstevecostanos2025/)
+* [@Jonell Magallanes 󱢏](https://www.facebook.com/ccprojectsjonell10/)
 
-## Notification !
+---
 
-+ We will have Example Video on Channel "Nguyễn Thái Hảo Official"
+## ✨ Features
 
-Original Project(Deprecated): https://github.com/Schmavery/facebook-chat-api
+* 🔐 **Precise Login Mechanism**
+  Dynamically scrapes Facebook's login form and submits tokens for secure authentication.
 
-Have a nice day!, thank you for using HZI products, best regardsHave a nice day!, thank you for using HZI products, best regards
-KANZUWAKAZAKI(15/04/2023)
+* 💬 **Real-time Messaging**
+  Send and receive messages (text, attachments, stickers, replies).
 
-## Support For : 
+* 📝 **Message Editing**
+  Edit your bot’s messages in-place.
 
-+ Support English, VietNamese !,
-+ All bot if using listenMqtt first.
+* ✍️ **Typing Indicators**
+  Detect and send typing status.
 
-# Api Cho ChatBot Messenger
+* ✅ **Message Status Handling**
+  Mark messages as delivered, read, or seen.
 
-Facebook Has And Allows Users To Create API For Chatbots 😪 Here => [Here](https://developers.facebook.com/docs/messenger-platform).
+* 📂 **Thread Management**
 
-### This API Can Make Your Account Pay Like You Never Had One, Pay Attention =))This API Can Make Your Account Pay Like You Never Had One, Pay Attention =))
+  * Retrieve thread details
+  * Load thread message history
+  * Get lists with filtering
+  * Pin/unpin messages
 
-## Download
+* 👤 **User Info Retrieval**
+  Access name, ID, profile picture, and mutual context.
 
-If You Want To Use It, Download It By:
+* 🖼️ **Sticker API**
+  Search stickers, list packs, fetch store data, AI-stickers.
+
+* 💬 **Post Interaction**
+  Comment and reply to public Facebook posts.
+
+* ➕ **Follow/Unfollow Users**
+  Automate social interactions.
+
+* 🌐 **Proxy Support**
+  Full support for custom proxies.
+
+* 🧱 **Modular Architecture**
+  Organized into pluggable models for maintainability.
+
+* 🛡️ **Robust Error Handling**
+  Retry logic, consistent logging, and graceful failovers.
+
+---
+
+## ⚙️ Installation
+
+> Requires **Node.js v20+**
+
 ```bash
-npm i fca-shaon
-```
-or
-```bash
-npm install fca-shaon
+npm i ws3-fca@latest
 ```
 
-npm install fca-shaon@latest
+---
+
+## 🚀 Getting Started
+
+### 1. Generate `appstate.json`
+
+This file contains your Facebook session cookies.
+Use a browser extension (e.g. "C3C FbState", "CookieEditor") to export cookies after logging in, and save them in this format:
+
+```json
+[
+  {
+    "key": "c_user",
+    "value": "your-id"
+  }
+]
 ```
-Hoặc
-```bash
-npm i fca-shaon@latest
-```
 
-## If You Want To Test Api ## If You Want To Test Api 
+If you don't know how to get cookie, you can follow this tutorial **[here](https://appstate-tutorial-ws3.pages.dev)**.
 
-Benefits Of This Is That You Won't Waste Time Paying Acc And Having Acc 😪
-Use With Test Account => [Facebook Whitehat Accounts]Facebook Whitehat Accounts]
-## How to Use
-```javascript
-const login = require("fca-shaon"); // get from libget from lib
+Place this file in the root directory as `appstate.json`.
 
-// login
-    if(err) return console.error(err); // error case
+---
 
-// create a bot that automatically imitates you:
-    api.listenMqtt((err, message) => {
-        api.sendMessage(message.body, message.threadID);
-    });
+### 2. Basic Usage Example
 
+```js
+const fs = require("fs");
+const path = require("path");
+const { login } = require("ws3-fca");
+
+let credentials;
+try {
+  credentials = { appState: JSON.parse(fs.readFileSync("appstate.json", "utf8")) };
+} catch (err) {
+  console.error("❌ appstate.json is missing or malformed.", err);
+  process.exit(1);
+}
+
+console.log("Logging in...");
+
+login(credentials, {
+  online: true,
+  updatePresence: true,
+  selfListen: false,
+  randomUserAgent: false
+}, async (err, api) => {
+  if (err) return console.error("LOGIN ERROR:", err);
+
+  console.log(`✅ Logged in as: ${api.getCurrentUserID()}`);
+
+  const commandsDir = path.join(__dirname, "modules", "commands");
+  const commands = new Map();
+
+  if (!fs.existsSync(commandsDir)) fs.mkdirSync(commandsDir, { recursive: true });
+
+  for (const file of fs.readdirSync(commandsDir).filter(f => f.endsWith(".js"))) {
+    const command = require(path.join(commandsDir, file));
+    if (command.name && typeof command.execute === "function") {
+      commands.set(command.name, command);
+      console.log(`🔧 Loaded command: ${command.name}`);
+    }
+  }
+
+  api.listenMqtt(async (err, event) => {
+    if (err || !event.body || event.type !== "message") return;
+
+    const prefix = "/";
+    if (!event.body.startsWith(prefix)) return;
+
+    const args = event.body.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    const command = commands.get(commandName);
+    if (!command) return;
+
+    try {
+      await command.execute({ api, event, args });
+    } catch (error) {
+      console.error(`Error executing ${commandName}:`, error);
+      api.sendMessageMqtt("❌ An error occurred while executing the command.", event.threadID, event.messageID);
+    }
+  });
 });
 ```
 
-The result is that it will imitate you as shown below:
-If You Want Advanced Use Then Use The Bots Listed Above!
+---
 
-## ListList        var login = require('fca-shaon');
-    ...   
-    */
-```
+## 🙌 Credits
 
-And Replace It With:
-```js
-    var login = require('fca-shaon')
-```
+* 🔧 **@NethWs3Dev (Kenneth Aceberos)** – Main developer, equal maintainer, feature and patch contributions.
+* 💧 **@ChoruOfficial** – Lead developer, refactor of original FCA code, Fully Setup Mqtt.
+* 🔮 **@CommunityExocore** – Foundational core design and architecture.
 
-Then Run Normally!Then Run Normally!
+> Copyright (c) 2015
+> Avery, Benjamin, David, Maude
 
-## Self-Study
-If You Want To Do Your Own Research Or Create Your Own Bot, Go To This To Read Its Functions And How To Use It => [Link](https://github.com/Schmavery/facebook-chat-api#Unofficial%20Facebook%20Chat%20API)
+---
 
-------------------------------------
+## 📊 License
 
-### ```js
-const fs = require("fs");
-const login = require("fca-shaon");
-
-var credentials = {email: "FB_EMAIL", password: "FB_PASSWORD"}; // account information // account information
-    if(err) return console.error(err);
-    // log in// log in// log in
-    ```
-
-Or Easier (Professional) You Can Use => [c3c-fbstate](https://github.com/c3cbot/c3c-fbstate) To Get Fbstate And Rename It To Apstate Is Also Possible! (appstate.json)
-
-------------------------------------
-
-## FAQS
-
-FAQS => [Link](https://github.com/Schmavery/facebook-chat-api#FAQS)
+**MIT** – Free to use, modify, and distribute. Attribution appreciated.

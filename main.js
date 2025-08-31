@@ -140,14 +140,13 @@ function onBot({ models: botModel }) {
         global.config.version = '1.2.14';
         global.client.timeStart = new Date().getTime();
 
-        // إرسال إشعار تشغيل البوت
-        loginApiData.sendMessage(`✅. تـم تـشـغـيـل سـيـكـو ☠️🩸`, global.config.ADMINBOT[0], (err) => {
-            if (err) logger(`فشل إرسال إشعار تشغيل البوت: ${JSON.stringify(err)}`, "ERROR");
-            else logger(`تم إرسال إشعار تشغيل البوت`, "INFO");
-        });
+        const timeNow = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss");
+        loginApiData.sendMessage(`تـم تـشـغـيـل الـبـوت ${timeNow} ✅`, global.config.ADMINBOT[0], (err) => {  
+            if (err) logger(`Failed to send startup notification: ${JSON.stringify(err)}`, "ERROR");  
+            else logger(`Startup notification sent`, "INFO");  
+        });  
 
-        // Load commands
-        (function () {
+        (function () {  
             const listCommand = readdirSync(global.client.mainPath + '/modules/commands').filter(command => command.endsWith('.js') && !command.includes('example') && !global.config.commandDisabled.includes(command));
             for (const command of listCommand) {
                 try {
