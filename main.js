@@ -333,7 +333,7 @@ const botURL = 'https://al-ex-ld9f.onrender.com';
 function pingUrl(url) {
   const lib = url.startsWith('https') ? https : http;
   lib.get(url, (res) => {
-    console.log('Ping sent to bot');
+    console.log('نـجـح ارسـل طلـب ✅');
   }).on('error', (e) => {
     console.log(`Error pinging bot: ${e.message}`);
   });
