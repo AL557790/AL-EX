@@ -1,10 +1,12 @@
-run = "node index.js"
 language = "nodejs"
+run = "npm start"
 
-[[ports]]
-localPort = 2006
-externalPort = 80
+[nix]
+packages = ["nodejs-16_x"]
+
+[agent]
+expertMode = true
 
 [[ports]]
 localPort = 3000
-externalPort = 3000
+externalPort = 80

@@ -4,7 +4,7 @@
   "description": "Hi To La vtuan",
   "main": "main.js",
   "scripts": {
-    "start": "node index",
+    "start": "node main.js",
     "login": "node login",
     "test": "node --trace-warnings --use_strict --async-stack-traces mirai"
   },
@@ -74,7 +74,7 @@
     "totp-generator": "",
     "tslib": "^2.6.0",
     "wikijs": "^6.4.1",
-    "ws3-fca": "^3.5.1",
+    "ws3-fca": "^3.5.2",
     "youtube-search-api": "^2.0.1",
     "ytdl-core": "^4.11.5"
   }
