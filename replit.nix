@@ -1,5 +1,1 @@
-{ pkgs }: {
-  deps = [
-    pkgs.nodejs-16_x
-  ];
-}
+{ pkgs }: { deps = [ pkgs.nodejs-18_x pkgs.yarn ]; }
