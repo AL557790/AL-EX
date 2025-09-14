@@ -8,7 +8,7 @@ module.exports.config = {
     credits: "Mod by You",
     description: "لعبة نرد احترافية مع مراهنة وتصنيف اللاعبين",
     commandCategory: "ألعاب",
-    usages: "نرد | انضمام <مبلغ> | بوت انضام <مبلغ> | رصيدي",
+    usages: "نرد | انضمام <مبلغ> | بوت انضمام <مبلغ> | رصيدي",
     cooldowns: 5
 };
 
