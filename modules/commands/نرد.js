@@ -3,25 +3,24 @@ const path = require("path");
 
 // ملف لتخزين بيانات اللاعبين
 const dataFile = path.join(__dirname, "players.json");
+
 function loadPlayers() {
-  if (fs.existsSync(dataFile)) {
-    return JSON.parse(fs.readFileSync(dataFile, "utf8"));
-  }
+  if (fs.existsSync(dataFile)) return JSON.parse(fs.readFileSync(dataFile, "utf8"));
   return {};
 }
+
 function savePlayers(players) {
   fs.writeFileSync(dataFile, JSON.stringify(players, null, 2));
 }
 
 module.exports.config = {
   name: "نرد",
-  aliases: ["انضمام", "رصيدي", "بوت"], // 🟢 يدعم أوامر متعددة
-  version: "1.0.2",
+  version: "1.0.5",
   hasPermssion: 0,
   credits: "مصطفى & ChatGPT",
   description: "لعبة نرد مع رصيد وانتصارات",
   commandCategory: "العاب",
-  usages: ".نرد | .انضمام <مبلغ> | .رصيدي | .بوت انضمام <مبلغ>",
+  usages: ".نرد | .رصيدي | .انضمام <مبلغ> | .بوت انضمام <مبلغ>",
   cooldowns: 2
 };
 
@@ -36,31 +35,27 @@ module.exports.run = async function({ api, event, args, commandName }) {
     savePlayers(players);
   }
 
-  // 🔹 لو كتب ".نرد" فقط → عرض التعليمات
-  if (commandName === "نرد") {
+  const cmd = commandName.toLowerCase();
+  const sub = args[0] ? args[0].toLowerCase() : "";
+
+  // ------------------ الأوامر ------------------
+
+  // .نرد → عرض التعليمات
+  if (cmd === "نرد") {
     return api.sendMessage(
       `🎲 مرحبًا بك في لعبة النرد!
-
 💰 كل لاعب يبدأ برصيد 1000$.
-
 📝 أوامر اللعبة:
-- .انضمام <المبلغ> → للعب مع آخرين (قريبًا).
-- .رصيدي → لعرض رصيدك وانتصاراتك.
-- .بوت انضمام <المبلغ> → للعب ضد البوت.
-
-⭐ التصنيفات:
-- 10+ انتصارات: محترف
-- 5-9 انتصارات: قوي
-- 1-4 انتصارات: مبتدئ
-- 0 انتصارات: ضيف
-
-📌 كل شيء يتم حفظه في players.json.`,
+- .رصيدي → لعرض رصيدك وانتصاراتك
+- .انضمام <المبلغ> → للعب جماعي (قريبًا)
+- .بوت انضمام <المبلغ> → للعب ضد البوت
+⭐ التصنيفات: 0 انتصارات = ضيف، 1-4 = مبتدئ، 5-9 = قوي، 10+ = محترف`,
       event.threadID
     );
   }
 
-  // 🔹 لو كتب ".رصيدي"
-  if (commandName === "رصيدي") {
+  // .رصيدي → عرض رصيد اللاعب
+  if (cmd === "نرد" && sub === "رصيدي") {
     const player = players[userID];
     let rank = "ضيف";
     if (player.wins >= 10) rank = "محترف";
@@ -77,25 +72,21 @@ module.exports.run = async function({ api, event, args, commandName }) {
     );
   }
 
-  // 🔹 لو كتب ".انضمام" (لعبة جماعية مستقبلًا)
-  if (commandName === "انضمام") {
+  // .انضمام → رسالة مؤقتة للعب الجماعي
+  if (cmd === "نرد" && sub === "انضمام") {
     return api.sendMessage(
-      "👥 طور الانضمام الجماعي سيتم تفعيله قريبًا.\nحالياً جرب اللعب ضد البوت: .بوت انضمام 100",
+      "👥 طور الانضمام الجماعي سيتم تفعيله قريبًا.\nجرب اللعب ضد البوت: .بوت انضمام 100",
       event.threadID
     );
   }
 
-  // 🔹 لو كتب ".بوت انضمام <مبلغ>"
-  if (commandName === "بوت") {
-    if (args[0] !== "انضمام") {
-      return api.sendMessage("❌ استخدم: .بوت انضمام <مبلغ>", event.threadID);
-    }
+  // .بوت انضمام <مبلغ> → اللعب ضد البوت
+  if (cmd === "نرد" && sub === "بوت") {
+    if (args[1] !== "انضمام") return api.sendMessage("❌ استخدم: .بوت انضمام <مبلغ>", event.threadID);
 
-    const bet = parseInt(args[1]) || 100;
+    const bet = parseInt(args[2]) || 100;
     if (bet <= 0) return api.sendMessage("⚠️ المبلغ غير صحيح.", event.threadID);
-    if (players[userID].balance < bet) {
-      return api.sendMessage("❌ رصيدك لا يكفي.", event.threadID);
-    }
+    if (players[userID].balance < bet) return api.sendMessage("❌ رصيدك لا يكفي.", event.threadID);
 
     const userRoll = Math.floor(Math.random() * 6) + 1;
     const botRoll = Math.floor(Math.random() * 6) + 1;
@@ -117,4 +108,7 @@ module.exports.run = async function({ api, event, args, commandName }) {
     savePlayers(players);
     return api.sendMessage(result, event.threadID);
   }
+
+  // أمر غير معروف
+  return api.sendMessage("❌ هذا أمر غير موجود", event.threadID);
 };
