@@ -8,7 +8,7 @@ module.exports.config = {
     credits: "Mod by You",
     description: "لعبة نرد احترافية مع مراهنة وتصنيف اللاعبين",
     commandCategory: "ألعاب",
-    usages: "نرد | انضمام <مبلغ> | بوت انضمام | رصيدي",
+    usages: "نرد | انضمام <مبلغ> | بوت انضمام <مبلغ> | رصيدي",
     cooldowns: 5
 };
 
@@ -29,7 +29,7 @@ module.exports.run = async ({ api, event, args }) => {
     const name = event.senderName;
     const command = args[0] ? args[0].toLowerCase() : "";
 
-    // تعريف اللعبة بشكل كامل
+    // تعريف اللعبة عند كتابة "نرد"
     if (command === "نرد") {
         return api.sendMessage(
 `🎲 مرحبًا بك في لعبة النرد الاحترافية!
@@ -39,25 +39,9 @@ module.exports.run = async ({ api, event, args }) => {
 👥 الحد الأقصى لكل لعبة: 3 لاعبين حقيقيين، أو لاعب واحد ضد البوت.
 
 📝 أوامر اللعبة:
-
-1️⃣ الانضمام للعبة:
-   اكتب: "انضمام <المبلغ>"
-   - للمشاركة ضد لاعبين آخرين.
-   - <المبلغ> هو قيمة الرهان لكل لاعب.
-
-2️⃣ اللعب ضد البوت:
-   اكتب: "بوت انضمام <المبلغ>"
-   - للعب ضد البوت مباشرة.
-   - الرصيد الافتراضي للبوت 1000 دولار (يمكن تعديل الرهان).
-
-3️⃣ معرفة رصيدك وتصنيفك:
-   اكتب: "رصيدي"
-   - يعرض عدد انتصاراتك، خسائرك، رصيدك الحالي، الأموال المكتسبة والمفقودة، وتصنيفك حسب مستوى مهارتك.
-
-🎯 طريقة اللعب:
-- بعد اكتمال عدد اللاعبين (3 لاعبين أو لاعب ضد البوت)، يقوم كل لاعب برمي النرد.
-- اللاعب صاحب أعلى رقم يفوز بالرهان.
-- في حالة التعادل، لا أحد يفوز.
+- الانضمام: "انضمام <المبلغ>"
+- اللعب ضد البوت: "بوت انضمام <المبلغ>"
+- عرض الرصيد: "رصيدي"
 
 ⭐ التصنيفات حسب عدد الانتصارات:
 - 10 انتصارات فأكثر: محترف
@@ -65,26 +49,17 @@ module.exports.run = async ({ api, event, args }) => {
 - 1-4 انتصارات: مبتدئ
 - 0 انتصارات: ضيف
 
-📌 كل شيء يتم حفظه تلقائيًا في ملف players.json لضمان حفظ الأرصدة والانتصارات والخسائر.
-
+📌 كل شيء يتم حفظه تلقائيًا في ملف players.json.
 استمتع باللعبة ونافس أصدقائك أو البوت! 🎲`, event.threadID
         );
     }
 
-    // إنشاء حساب افتراضي عند الانضمام
+    // إنشاء حساب افتراضي عند الانضمام لأول مرة
     if (!players[userID]) {
-        players[userID] = {
-            id: userID,
-            name,
-            balance: 1000,
-            wins: 0,
-            losses: 0,
-            moneyWon: 0,
-            moneyLost: 0
-        };
+        players[userID] = { id: userID, name, balance: 1000, wins: 0, losses: 0, moneyWon: 0, moneyLost: 0 };
     }
 
-    // أمر الانضمام
+    // أمر الانضمام للاعبين
     if (command === "انضمام") {
         const bet = parseInt(args[1]);
         if (!bet || isNaN(bet)) return api.sendMessage("⚠️ يرجى تحديد مبلغ المراهنة!", event.threadID);
@@ -100,37 +75,26 @@ module.exports.run = async ({ api, event, args }) => {
         currentGame.members.push({ id: userID, name, bet, roll: 0 });
         api.sendMessage(`✅ ${name} انضم للعبة بمراهنة ${bet} دولار.`, event.threadID);
 
-        // عرض أسماء اللاعبين الحاليين
         const memberNames = currentGame.members.map(p => p.name).join(", ");
-        api.sendMessage(`👥 اللاعبون الحاليون في اللعبة: ${memberNames}`, event.threadID);
+        api.sendMessage(`👥 اللاعبون الحاليون: ${memberNames}`, event.threadID);
 
-        // تشغيل اللعبة عند اكتمال 3 لاعبين
         if (currentGame.members.length === currentGame.maxPlayers) runGame(api);
-
         return;
     }
 
     // أمر اللعب ضد البوت
     if (command === "بوت") {
         const subCommand = args[1] ? args[1].toLowerCase() : "";
-        if (subCommand !== "انضمام") return api.sendMessage("❌ الأمر غير صحيح. استخدم: بوت انضمام", event.threadID);
+        if (subCommand !== "انضمام") return api.sendMessage("❌ استخدم: بوت انضمام <المبلغ>", event.threadID);
 
         if (currentGame.active) return api.sendMessage("⚠️ هناك لعبة جارية حاليًا.", event.threadID);
 
-        const bet = parseInt(args[2]) || 100; // الرهان الافتراضي 100 إذا لم يُحدد
+        const bet = parseInt(args[2]) || 100;
         if (bet > players[userID].balance) return api.sendMessage(`⚠️ رصيدك غير كافي! رصيدك الحالي: ${players[userID].balance}`, event.threadID);
 
-        currentGame = {
-            active: true,
-            members: [{ id: userID, name, bet, roll: 0 }],
-            maxPlayers: 1,
-            againstBot: true,
-            botBet: bet
-        };
-
+        currentGame = { active: true, members: [{ id: userID, name, bet, roll: 0 }], maxPlayers: 1, againstBot: true, botBet: bet };
         api.sendMessage(`🎲 ${name} بدأ لعبة ضد البوت بمراهنة ${bet} دولار!`, event.threadID);
 
-        // بدء اللعبة ضد البوت بعد ثانية
         setTimeout(() => runGame(api, true), 1000);
         return;
     }
@@ -140,7 +104,6 @@ module.exports.run = async ({ api, event, args }) => {
         const player = players[userID];
         if (!player) return api.sendMessage("⚠️ لم يتم العثور على بياناتك.", event.threadID);
 
-        // تصنيف اللاعب
         let rank = "ضيف";
         if (player.wins >= 10) rank = "محترف";
         else if (player.wins >= 5) rank = "قوي";
@@ -162,7 +125,6 @@ module.exports.run = async ({ api, event, args }) => {
 function runGame(api, againstBot = false) {
     let resultMsg = "🎲 نتائج لعبة النرد:\n\n";
 
-    // رمي النرد لكل لاعب
     currentGame.members.forEach(p => p.roll = Math.floor(Math.random() * 6) + 1);
 
     if (againstBot) {
@@ -178,19 +140,16 @@ function runGame(api, againstBot = false) {
             player.losses++; player.moneyLost += currentGame.botBet; player.balance -= currentGame.botBet;
             players[player.id].losses++; players[player.id].moneyLost += currentGame.botBet; players[player.id].balance -= currentGame.botBet;
             resultMsg += `🏆 الفائز: البوت`;
-        } else {
-            resultMsg += `⚖️ تعادل!`;
-        }
+        } else resultMsg += `⚖️ تعادل!`;
 
         api.sendMessage(resultMsg, player.id);
     } else {
-        // لعبة ضد لاعبين حقيقيين
         let highestRoll = 0;
         let winner = null;
         currentGame.members.forEach(p => {
             resultMsg += `${p.name} رمى: ${p.roll}\n`;
             if (p.roll > highestRoll) winner = p, highestRoll = p.roll;
-            else if (p.roll === highestRoll) winner = null; // تعادل
+            else if (p.roll === highestRoll) winner = null;
         });
 
         if (winner) {
@@ -211,10 +170,7 @@ function runGame(api, againstBot = false) {
         });
     }
 
-    // حفظ البيانات
     fs.writeFileSync(dataFile, JSON.stringify(players, null, 2));
-
-    // إعادة تعيين اللعبة
     currentGame.active = false;
     currentGame.members = [];
     currentGame.againstBot = false;
