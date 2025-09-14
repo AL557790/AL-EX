@@ -27,10 +27,10 @@ let currentGame = { active: false, members: [], maxPlayers: 3, againstBot: false
 module.exports.run = async ({ api, event, args }) => {
     const userID = event.senderID;
     const name = event.senderName;
-    const command = args[0] ? args[0].toLowerCase() : "";
+    const messageBody = event.body.trim();
 
     // تعريف اللعبة عند كتابة "نرد"
-    if (command === "نرد") {
+    if (messageBody === "نرد") {
         return api.sendMessage(
 `🎲 مرحبًا بك في لعبة النرد الاحترافية!
 
@@ -58,6 +58,8 @@ module.exports.run = async ({ api, event, args }) => {
     if (!players[userID]) {
         players[userID] = { id: userID, name, balance: 1000, wins: 0, losses: 0, moneyWon: 0, moneyLost: 0 };
     }
+
+    const command = args[0] ? args[0].toLowerCase() : "";
 
     // أمر الانضمام للاعبين
     if (command === "انضمام") {
