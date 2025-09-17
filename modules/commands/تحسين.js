@@ -1,58 +1,63 @@
-const axios = require("axios");
-const FormData = require("form-data");
+const { execSync } = require("child_process");
+
+function ensureDependencies(modules) {
+  modules.forEach((mod) => {
+    try {
+      require.resolve(mod);
+    } catch (e) {
+      console.log(`Installing missing module: ${mod} ...`);
+      execSync(`npm install ${mod}`, { stdio: "inherit" });
+    }
+  });
+}
+
+ensureDependencies(["sharp", "axios", "fs", "path"]);
+
+const sharp = require("sharp");
 const fs = require("fs");
+const axios = require("axios");
 const path = require("path");
 
 module.exports.config = {
   name: "تحسين",
-  version: "1.2.0",
+  version: "1.0.1",
   hasPermssion: 0,
-  credits: "مصطفى",
-  description: "تحسين جودة الصور (بالرد على صورة فقط)",
-  commandCategory: "صور",
-  usages: "رد على صورة بـ .تحسين",
-  cooldowns: 5,
+  credits: "Mostafa",
+  description: "Enhance image clarity and colors",
+  commandCategory: "Images",
+  usages: ".تحسين (reply to an image)",
+  usePrefix: true,
 };
 
-module.exports.run = async function({ api, event }) {
+module.exports.run = async function ({ api, event }) {
   try {
-    // لازم يكون رد على رسالة فيها صورة
-    if (!event.messageReply || event.messageReply.attachments.length === 0 || event.messageReply.attachments[0].type !== "photo") {
-      return api.sendMessage("⚠️ لازم ترد على صورة بالأمر .تحسين", event.threadID, event.messageID);
+    if (!event.messageReply || !event.messageReply.attachments || event.messageReply.attachments[0].type !== "photo") {
+      return api.sendMessage("⚠️ Please reply to an image with the command .تحسين", event.threadID, event.messageID);
     }
 
-    const attachment = event.messageReply.attachments[0];
-    const filePath = path.join(__dirname, "temp.jpg");
+    const imageUrl = event.messageReply.attachments[0].url;
+    const inputPath = path.join(__dirname, "input.jpg");
+    const outputPath = path.join(__dirname, "output.jpg");
 
-    // تحميل الصورة من رابط فيسبوك
-    const imgResponse = await axios.get(attachment.url, { responseType: "stream" });
-    const writer = fs.createWriteStream(filePath);
-    imgResponse.data.pipe(writer);
+    const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    fs.writeFileSync(inputPath, response.data);
 
-    writer.on("finish", async () => {
-      try {
-        // تجهيز الـ FormData
-        const form = new FormData();
-        form.append("image", fs.createReadStream(filePath));
+    await sharp(inputPath).normalize().sharpen().toFile(outputPath);
 
-        // إرسال الصورة لسيرفرك
-        const response = await axios.post("https://zoro-ap89.onrender.com/enhance", form, {
-          headers: {
-            ...form.getHeaders(),
-          },
-        });
-
-        fs.unlinkSync(filePath); // نحذف الصورة المؤقتة
-
-        // إرسال الرابط الناتج
-        api.sendMessage("✅ تم تحسين الصورة:\n" + response.data.enhanced, event.threadID, event.messageID);
-      } catch (error) {
-        console.error(error.message);
-        api.sendMessage("❌ حصل خطأ أثناء تحسين الصورة", event.threadID, event.messageID);
-      }
-    });
+    api.sendMessage(
+      {
+        body: "✅ Enhanced image:",
+        attachment: fs.createReadStream(outputPath),
+      },
+      event.threadID,
+      () => {
+        fs.unlinkSync(inputPath);
+        fs.unlinkSync(outputPath);
+      },
+      event.messageID
+    );
   } catch (err) {
-    console.error(err);
-    api.sendMessage("❌ خطأ غير متوقع", event.threadID, event.messageID);
+    console.error("Error:", err);
+    api.sendMessage("❌ An error occurred while enhancing the image.", event.threadID, event.messageID);
   }
 };
