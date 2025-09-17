@@ -5,23 +5,23 @@ const path = require("path");
 
 module.exports.config = {
   name: "تحسين",
-  version: "1.0.0",
+  version: "1.2.0",
   hasPermssion: 0,
   credits: "مصطفى",
-  description: "تحسين جودة الصور باستخدام API",
+  description: "تحسين جودة الصور (بالرد على صورة فقط)",
   commandCategory: "صور",
-  usages: ".تحسين + صورة",
+  usages: "رد على صورة بـ .تحسين",
   cooldowns: 5,
 };
 
 module.exports.run = async function({ api, event }) {
   try {
-    // تأكد أن فيه صورة مرفقة
-    if (!event.attachments || event.attachments.length === 0 || event.attachments[0].type !== "photo") {
-      return api.sendMessage("⚠️ من فضلك أرسل صورة مع الأمر .تحسين", event.threadID, event.messageID);
+    // لازم يكون رد على رسالة فيها صورة
+    if (!event.messageReply || event.messageReply.attachments.length === 0 || event.messageReply.attachments[0].type !== "photo") {
+      return api.sendMessage("⚠️ لازم ترد على صورة بالأمر .تحسين", event.threadID, event.messageID);
     }
 
-    const attachment = event.attachments[0];
+    const attachment = event.messageReply.attachments[0];
     const filePath = path.join(__dirname, "temp.jpg");
 
     // تحميل الصورة من رابط فيسبوك
@@ -35,17 +35,16 @@ module.exports.run = async function({ api, event }) {
         const form = new FormData();
         form.append("image", fs.createReadStream(filePath));
 
-        // إرسال الصورة لسيرفر Render
+        // إرسال الصورة لسيرفرك
         const response = await axios.post("https://zoro-ap89.onrender.com/enhance", form, {
           headers: {
             ...form.getHeaders(),
           },
         });
 
-        // حذف الملف المؤقت
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(filePath); // نحذف الصورة المؤقتة
 
-        // إرسال الرابط الناتج للمستخدم
+        // إرسال الرابط الناتج
         api.sendMessage("✅ تم تحسين الصورة:\n" + response.data.enhanced, event.threadID, event.messageID);
       } catch (error) {
         console.error(error.message);
