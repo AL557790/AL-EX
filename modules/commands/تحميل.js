@@ -1,71 +1,40 @@
-const { execSync } = require("child_process");
+module.exports = {
+ config:{
+ name: "تنزيل-تلقائي",
+ version: "0.0.2",
+ hasPermssion: 0,
+ credits: "SHAON",
+ description: "auto video download",
+ commandCategory: "user",
+ usages: "",
+ cooldowns: 5,
+},
+run: async function({ api, event, args }) {},
+handleEvent: async function ({ api, event, args }) {
+ const axios = require("axios")
+ const request = require("request")
+ const fs = require("fs-extra")
+ const content = event.body ? event.body : '';
+ const body = content.toLowerCase();
+ const { alldown } = require("shaon-videos-downloader")
+ if (body.startsWith("https://")) {
+ api.setMessageReaction("⚠️", event.messageID, (err) => {}, true);
+const data = await alldown(content);
+ console.log(data)
+ let Shaon = data.url;
+ api.setMessageReaction("☢️", event.messageID, (err) => {}, true);
+ const video = (await axios.get(Shaon, {
+ responseType: "arraybuffer",
+ })).data;
+ fs.writeFileSync(__dirname + "/cache/auto.mp4", Buffer.from(video, "utf-8"))
 
-function ensureDependencies(modules) {
-  modules.forEach((mod) => {
-    try {
-      require.resolve(mod);
-    } catch (e) {
-      console.log(`Installing missing module: ${mod} ...`);
-      execSync(`npm install ${mod}`, { stdio: "inherit" });
-    }
-  });
+ return api.sendMessage({
+ body: `🔥🚀 𝗜𝘀𝗹𝗮𝗺𝗶𝗰𝗸 𝗰𝗵𝗮𝘁 𝗯𝗼𝘁 | ᵁᴸᴸ⁴ˢᴴ 🔥💻 
+📥⚡𝗔𝘂𝘁𝗼 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗿⚡📂
+🎬 𝐄𝐧𝐣𝐨𝐲 𝐭𝐡𝐞 𝐕𝐢𝐝𝐞𝐨 🎀`,
+ attachment: fs.createReadStream(__dirname + "/cache/auto.mp4")
+
+ }, event.threadID, event.messageID);
+ }
 }
-
-ensureDependencies(["fb-video-downloader", "axios", "fs", "path"]);
-
-const FbDownloader = require("fb-video-downloader");
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-
-module.exports.config = {
-  name: "فيديو",
-  version: "1.0.1",
-  hasPermssion: 0,
-  credits: "Mostafa",
-  description: "Download Facebook video via link",
-  commandCategory: "Video",
-  usages: ".فيديو [link]",
-  usePrefix: true,
-};
-
-module.exports.run = async function ({ api, event, args }) {
-  try {
-    const url = args.join(" ");
-    if (!url) {
-      return api.sendMessage("⚠️ Please provide a Facebook video link.", event.threadID, event.messageID);
-    }
-
-    const downloader = new FbDownloader(url);
-    const videoInfo = await downloader.getInfo();
-
-    if (!videoInfo.video || videoInfo.video.length === 0) {
-      return api.sendMessage("❌ Could not fetch the video.", event.threadID, event.messageID);
-    }
-
-    const videoUrl = videoInfo.video[0].url;
-    const outputPath = path.join(__dirname, "video.mp4");
-
-    const response = await axios.get(videoUrl, { responseType: "stream" });
-    const writer = fs.createWriteStream(outputPath);
-    response.data.pipe(writer);
-
-    writer.on("finish", () => {
-      api.sendMessage(
-        { body: "✅ Video downloaded:", attachment: fs.createReadStream(outputPath) },
-        event.threadID,
-        () => fs.unlinkSync(outputPath),
-        event.messageID
-      );
-    });
-
-    writer.on("error", (err) => {
-      console.error(err);
-      api.sendMessage("❌ Error while downloading the video.", event.threadID, event.messageID);
-    });
-
-  } catch (err) {
-    console.error(err);
-    api.sendMessage("❌ An error occurred.", event.threadID, event.messageID);
-  }
-};
+}
