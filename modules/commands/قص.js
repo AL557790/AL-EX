@@ -11,12 +11,12 @@ function ensureDependencies(modules) {
   });
 }
 
-ensureDependencies(["axios", "fs", "path", "background-removal-node"]);
+ensureDependencies(["axios", "fs", "path", "@imgly/background-removal"]);
 
 const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
-const { removeBackground } = require("background-removal-node");
+const { removeBackground } = require("@imgly/background-removal");
 
 module.exports.config = {
   name: "قص",
@@ -50,10 +50,8 @@ module.exports.run = async function ({ api, event }) {
     const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
     fs.writeFileSync(inputPath, response.data);
 
-    await removeBackground({
-      path: inputPath,
-      output: outputPath,
-    });
+    const buffer = await removeBackground(fs.readFileSync(inputPath));
+    fs.writeFileSync(outputPath, buffer);
 
     api.sendMessage(
       {
