@@ -2,18 +2,19 @@ module.exports.config = {
     name: "تخمين",
     version: "1.0.0",
     hasPermssion: 0,
-    credits: "ZINO",
+    credits: "ZINO + تعديل",
     description: "لعبة تخمين الرقم",
     commandCategory: "〘 الالعاب 〙",
-    usages: "[start/stop]",
+    usages: "[ابدأ/توقف/مساعدة]",
     cooldowns: 5
 };
 
 const gameData = new Map();
 
+// هذا يشتغل مع الأوامر (ابدأ - توقف - مساعدة)
 module.exports.run = async function({ api, event, args }) {
-    const { threadID, senderID } = event;
-    
+    const { threadID } = event;
+
     if (!args[0] || args[0] === "مساعدة") {
         return api.sendMessage(
             "╭──────────────╮\n" +
@@ -60,39 +61,43 @@ module.exports.run = async function({ api, event, args }) {
             threadID
         );
     }
+};
 
-    // Handle guesses
-    if (gameData.has(threadID)) {
-        const guess = parseInt(event.body);
-        if (isNaN(guess)) return; // Not a number, ignore
+// هذا يراقب أي رسالة في الشات لو فيه لعبة شغالة
+module.exports.handleEvent = async function({ api, event }) {
+    const { threadID, body } = event;
 
-        const game = gameData.get(threadID);
-        game.attempts++;
+    if (!gameData.has(threadID)) return; // مافي لعبة شغالة
 
-        if (guess === game.number) {
-            gameData.delete(threadID);
-            return api.sendMessage(
-                "🎉 مبروك! لقد فزت!\n" +
-                `✨ الرقم الصحيح هو: ${game.number}\n` +
-                `📝 عدد المحاولات: ${game.attempts}`,
-                threadID
-            );
-        }
+    const guess = parseInt(body);
+    if (isNaN(guess)) return; // لو مش رقم تجاهل
 
-        if (game.attempts >= game.maxAttempts) {
-            gameData.delete(threadID);
-            return api.sendMessage(
-                "💔 انتهت المحاولات!\n" +
-                `🎯 الرقم الصحيح كان: ${game.number}`,
-                threadID
-            );
-        }
+    const game = gameData.get(threadID);
+    game.attempts++;
 
-        const hint = guess > game.number ? "أصغر" : "أكبر";
+    if (guess === game.number) {
+        gameData.delete(threadID);
         return api.sendMessage(
-            `❌ خطأ! جرب رقماً ${hint}\n` +
-            `📍 المحاولات المتبقية: ${game.maxAttempts - game.attempts}`,
+            "🎉 مبروك! لقد فزت!\n" +
+            `✨ الرقم الصحيح هو: ${game.number}\n` +
+            `📝 عدد المحاولات: ${game.attempts}`,
             threadID
         );
     }
+
+    if (game.attempts >= game.maxAttempts) {
+        gameData.delete(threadID);
+        return api.sendMessage(
+            "💔 انتهت المحاولات!\n" +
+            `🎯 الرقم الصحيح كان: ${game.number}`,
+            threadID
+        );
+    }
+
+    const hint = guess > game.number ? "أصغر" : "أكبر";
+    return api.sendMessage(
+        `❌ خطأ! جرب رقماً ${hint}\n` +
+        `📍 المحاولات المتبقية: ${game.maxAttempts - game.attempts}`,
+        threadID
+    );
 };
