@@ -4,10 +4,10 @@ const path = require('path');
 
 module.exports.config = {
     name: "انشاء",
-    version: "1.0.0",
+    version: "1.0.1",
     hasPermssion: 0,
     credits: "Mod by You",
-    description: "انشاء صور عبر API",
+    description: "انشاء صور بدون مفتاح API",
     commandCategory: "صور",
     usages: "انشاء [نص]",
     cooldowns: 5
@@ -15,24 +15,23 @@ module.exports.config = {
 
 module.exports.run = async ({ api, event, args }) => {
     try {
-        if (!args[0]) return api.sendMessage("يرجى إدخال نص لإنشاء الصورة!", event.threadID);
+        if (!args[0]) return api.sendMessage("⚠️ يرجى إدخال نص لإنشاء الصورة!", event.threadID);
 
-        // دمج النص مع رابط الـ API
         const prompt = encodeURIComponent(args.join(" "));
-        const url = `https://api.oculux.xyz/api/synthwave?prompt=${prompt}`;
+        const url = `https://image.pollinations.ai/prompt/${prompt}`;
 
-        // جلب الصورة من الـ API
         const response = await axios.get(url, { responseType: 'arraybuffer' });
-        const imagePath = path.join(__dirname, "result.jpg");
+        const imagePath = path.join(__dirname, "pollinations_result.jpg");
         fs.writeFileSync(imagePath, Buffer.from(response.data, 'binary'));
 
-        // إرسال الصورة
-        api.sendMessage({ body: "تم إنشاء الصورة:", attachment: fs.createReadStream(imagePath) }, event.threadID, () => {
-            fs.unlinkSync(imagePath); // حذف الصورة بعد الإرسال
-        });
+        api.sendMessage(
+            { body: `✅ تم إنشاء الصورة:\n"${args.join(" ")}"`, attachment: fs.createReadStream(imagePath) },
+            event.threadID,
+            () => fs.unlinkSync(imagePath)
+        );
 
     } catch (error) {
         console.error(error);
-        api.sendMessage("حدث خطأ أثناء إنشاء الصورة.", event.threadID);
+        api.sendMessage("❌ حدث خطأ أثناء إنشاء الصورة.", event.threadID);
     }
 };
