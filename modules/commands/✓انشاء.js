@@ -7,7 +7,7 @@ module.exports.config = {
     version: "1.0.1",
     hasPermssion: 0,
     credits: "Mod by You",
-    description: "انشاء صور بدون مفتاح API",
+    description: " API",
     commandCategory: "صور",
     usages: "انشاء [نص]",
     cooldowns: 5
