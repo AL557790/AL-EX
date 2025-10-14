@@ -1,16 +1,15 @@
+const fs = require("fs");
+const request = require("request");
+
 module.exports.config = {
     name: "اوامر",
-    version: "1.0.2",
+    version: "1.1.1",
     hasPermssion: 0,
-    credits: "انس",
-    description: "قائمة الاوامر",
+    credits: "انس + تعديل مصطفى",
+    description: "قائمة الأوامر مع صورة",
     commandCategory: "نظام",
-    usages: "[Name module]",
-    cooldowns: 5,
-    envConfig: {
-        autoUnsend: true,
-        delayUnsend: 20
-    }
+    usages: "[رقم الصفحة أو اسم الأمر]",
+    cooldowns: 5
 };
 
 module.exports.languages = {
@@ -23,42 +22,29 @@ module.exports.languages = {
     }
 };
 
-module.exports.handleEvent = function ({ api, event, getText }) {
-    const { commands } = global.client;
-    const { threadID, messageID, body } = event;
-
-    if (!body || typeof body == "cmd" || body.indexOf("help") != 0) return;
-    const splitBody = body.slice(body.indexOf("help")).trim().split(/\s+/);
-    if (splitBody.length == 1 || !commands.has(splitBody[1].toLowerCase())) return;
-    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-    const command = commands.get(splitBody[1].toLowerCase());
-    const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
-    return api.sendMessage(getText("moduleInfo", command.config.name, command.config.description, `${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}`, command.config.commandCategory, command.config.cooldowns, ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")), command.config.credits), threadID, messageID);
-};
-
 module.exports.run = function({ api, event, args, getText }) {
     const { commands } = global.client;
     const { threadID, messageID } = event;
     const command = commands.get((args[0] || "").toLowerCase());
     const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-    const { autoUnsend, delayUnsend } = global.configModule[this.config.name];
     const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
+
+    // 🔹 صورة الأوامر
+    const imgURL = "https://files.catbox.moe/0v911k.jpg";
 
     if (!command) {
         const arrayInfo = [];
         const page = parseInt(args[0]) || 1;
         const numberOfOnePage = 100;
-        let i = 0;
         let msg = "╔══════════════╗\n🌟 قائمة الأوامر 🌟\n╚══════════════╝\n╭───────────────────╮\n";
 
-        for (var [name, value] of (commands)) {
+        for (var [name] of (commands)) {
             arrayInfo.push(name);
         }
 
-        arrayInfo.sort((a, b) => a.data - b.data);
+        arrayInfo.sort();
 
         const startSlice = numberOfOnePage * page - numberOfOnePage;
-        i = startSlice;
         const returnArray = arrayInfo.slice(startSlice, startSlice + numberOfOnePage);
 
         for (let item of returnArray) {
@@ -66,13 +52,29 @@ module.exports.run = function({ api, event, args, getText }) {
         }
 
         const text = `╰───────────────────╯\n\n📜 الصفحة (${page}/${Math.ceil(arrayInfo.length / numberOfOnePage)})\n📟 اكتب: ${prefix}اوامر [رقم الصفحة]\n🔢 مجموع الأوامر: ${arrayInfo.length}`;
-        return api.sendMessage(msg + text, threadID, async (error, info) => {
-            if (autoUnsend) {
-                await new Promise(resolve => setTimeout(resolve, delayUnsend * 1000)); // تعديل إلى 1000 لأن الوقت بالمللي ثانية
-                return api.unsendMessage(info.messageID);
-            } else return;
-        });
+
+        // تحميل الصورة مؤقتاً ثم إرسالها مع الرسالة
+        const callback = () => {
+            api.sendMessage({
+                body: msg + text,
+                attachment: fs.createReadStream(__dirname + "/cache/help.jpg")
+            }, threadID, () => fs.unlinkSync(__dirname + "/cache/help.jpg"));
+        };
+
+        return request(encodeURI(imgURL))
+            .pipe(fs.createWriteStream(__dirname + "/cache/help.jpg"))
+            .on("close", callback);
     }
 
-    return api.sendMessage(getText("moduleInfo", command.config.name, command.config.description, `${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}`, command.config.commandCategory, command.config.cooldowns, ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")), command.config.credits), threadID, messageID);
+    // لو المستخدم كتب اسم أمر
+    return api.sendMessage(getText("moduleInfo",
+        command.config.name,
+        command.config.description,
+        `${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}`,
+        command.config.commandCategory,
+        command.config.cooldowns,
+        ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")),
+        command.config.credits),
+        threadID, messageID
+    );
 };
