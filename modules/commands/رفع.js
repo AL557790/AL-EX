@@ -4,11 +4,11 @@ const path = require("path");
 const { URL } = require("url");
 
 module.exports.config = {
-  name: "رفعسكرب",
-  version: "1.3.0",
+  name: "رفع",
+  version: "1.2.0",
   hasPermssion: 0,
   credits: "Mustafa + GPT-5",
-  description: "رفع الصور إلى catbox بدون مكتبات خارجية مع تنسيق جميل",
+  description: "رفع الصور إلى catbox بدون مكتبات خارجية",
   commandCategory: "〘 الأدوات 〙",
   usages: "[بالرد على صورة]",
   cooldowns: 3,
@@ -20,7 +20,9 @@ function downloadFile(fileUrl, dest) {
     const file = fs.createWriteStream(dest);
     https.get(url, (res) => {
       res.pipe(file);
-      file.on("finish", () => file.close(resolve));
+      file.on("finish", () => {
+        file.close(resolve);
+      });
     }).on("error", (err) => {
       fs.unlinkSync(dest);
       reject(err);
@@ -89,7 +91,6 @@ module.exports.run = async function ({ api, event }) {
       return api.sendMessage("⚠️ | فشل رفع الصورة.\nالرد من الموقع:\n" + link, event.threadID, event.messageID);
     }
 
-    // الرسالة بالتنسيق الجميل
     const message = `✦ ━━━𝕌𝙋𝙇𝙊𝘼𝘿 𝙇𝙊𝙂 ━━━ ✦\n\n│⏳ استجابة الخادم 200 OK →\n\n│ 📤 تم رفع الصورة بنجاح [✅]\n\n│ ⚙️ ربط صورة 👇: ${link}\n  ❂━━━━━━━━━━━━━━━━❂`;
     return api.sendMessage(message, event.threadID, event.messageID);
 
