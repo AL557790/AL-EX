@@ -1,22 +1,73 @@
-const axios = require("axios");
+const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const FormData = require("form-data");
+const { URL } = require("url");
 
 module.exports.config = {
-  name: "رفع",
-  version: "1.0.0",
+  name: "رفعسكرب",
+  version: "1.3.0",
   hasPermssion: 0,
   credits: "Mustafa + GPT-5",
-  description: "رفع الصور إلى catbox بأسلوب سكربنغ (مثل المتصفح)",
+  description: "رفع الصور إلى catbox بدون مكتبات خارجية مع تنسيق جميل",
   commandCategory: "〘 الأدوات 〙",
   usages: "[بالرد على صورة]",
   cooldowns: 3,
 };
 
+function downloadFile(fileUrl, dest) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(fileUrl);
+    const file = fs.createWriteStream(dest);
+    https.get(url, (res) => {
+      res.pipe(file);
+      file.on("finish", () => file.close(resolve));
+    }).on("error", (err) => {
+      fs.unlinkSync(dest);
+      reject(err);
+    });
+  });
+}
+
+function uploadToCatbox(filePath) {
+  return new Promise((resolve, reject) => {
+    const boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+    const data = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+
+    const postData = Buffer.concat([
+      Buffer.from(`--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="fileToUpload"; filename="${fileName}"\r\n` +
+        `Content-Type: application/octet-stream\r\n\r\n`),
+      data,
+      Buffer.from(`\r\n--${boundary}--\r\n`)
+    ]);
+
+    const options = {
+      method: "POST",
+      hostname: "catbox.moe",
+      path: "/user/api.php",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": postData.length
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", chunk => body += chunk);
+      res.on("end", () => resolve(body.trim()));
+    });
+
+    req.on("error", (err) => reject(err));
+    req.write(postData);
+    req.end();
+  });
+}
+
 module.exports.run = async function ({ api, event }) {
   try {
-    // التحقق من وجود صورة في الرد
     if (!event.messageReply || !event.messageReply.attachments || event.messageReply.attachments.length === 0) {
       return api.sendMessage("📸 | أرسل الأمر بالرد على صورة.", event.threadID, event.messageID);
     }
@@ -24,47 +75,24 @@ module.exports.run = async function ({ api, event }) {
     const attach = event.messageReply.attachments[0];
     if (!attach.url) return api.sendMessage("❌ | لم أجد رابط الصورة.", event.threadID, event.messageID);
 
-    // تنزيل الصورة مؤقتًا
-    const imageUrl = attach.url;
-    const fileName = path.basename(imageUrl.split("?")[0]);
     const cacheDir = path.join(__dirname, "cache");
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+    const fileName = path.basename(attach.url.split("?")[0]);
     const filePath = path.join(cacheDir, fileName);
 
-    const res = await axios.get(imageUrl, { responseType: "arraybuffer" });
-    fs.writeFileSync(filePath, res.data);
-
-    // سكربنغ يشبه تمامًا طلبك في Python
-    const headers = {
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
-      "Referer": "https://catbox.moe/",
-      "Origin": "https://catbox.moe",
-      "X-Requested-With": "XMLHttpRequest",
-      "Accept": "application/json, text/plain, */*",
-      "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7"
-    };
-
-    const form = new FormData();
-    form.append("reqtype", "fileupload");
-    form.append("fileToUpload", fs.createReadStream(filePath));
-
-    // رفع الصورة إلى Catbox
-    const uploadRes = await axios.post("https://catbox.moe/user/api.php", form, {
-      headers: {
-        ...form.getHeaders(),
-        ...headers,
-      },
-      timeout: 120000,
-    });
-
-    const link = uploadRes.data.trim();
+    await downloadFile(attach.url, filePath);
+    const link = await uploadToCatbox(filePath);
     fs.unlinkSync(filePath);
 
     if (!link.startsWith("https://")) {
       return api.sendMessage("⚠️ | فشل رفع الصورة.\nالرد من الموقع:\n" + link, event.threadID, event.messageID);
     }
 
-    return api.sendMessage(`✅ | تم رفع الصورة بنجاح:\n${link}`, event.threadID, event.messageID);
+    // الرسالة بالتنسيق الجميل
+    const message = `✦ ━━━𝕌𝙋𝙇𝙊𝘼𝘿 𝙇𝙊𝙂 ━━━ ✦\n\n│⏳ استجابة الخادم 200 OK →\n\n│ 📤 تم رفع الصورة بنجاح [✅]\n\n│ ⚙️ ربط صورة 👇: ${link}\n  ❂━━━━━━━━━━━━━━━━❂`;
+    return api.sendMessage(message, event.threadID, event.messageID);
+
   } catch (err) {
     console.error(err);
     return api.sendMessage("⚠️ | حدث خطأ أثناء عملية الرفع.", event.threadID, event.messageID);
