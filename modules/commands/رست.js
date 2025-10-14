@@ -1,32 +1,41 @@
+const fs = require("fs");
+const moment = require("moment-timezone");
+
 module.exports.config = {
     name: "ريست",
-    version: "2.0.2",
+    version: "2.0.3",
     hasPermssion: 3,
-    credits: "Mirai Team mod by Jukie",
-    description: "Khởi động lai bot",
-    commandCategory: "Hệ thống admin-bot",
-    usages: "restart",
-    cooldowns: 5,
-    dependencies: { }
-}
- 
-module.exports.run = async function({ api, args, Users, event}) {
-const { threadID, messageID } = event;
-const axios = global.nodemodule["axios"];
+    credits: "Jukie + تعديل مصطفى",
+    description: "إعادة تشغيل البوت",
+    commandCategory: "النظام",
+    usages: "[عدد الثواني]",
+    cooldowns: 5
+};
 
-const moment = require("moment-timezone");
-    var gio = moment.tz("Asia/Ho_Chi_Minh").format("HH");
-    var phut = moment.tz("Asia/Ho_Chi_Minh").format("mm");
-    var giay = moment.tz("Asia/Ho_Chi_Minh").format("ss");
-const fs = require("fs");
-    let name = await Users.getNameUser(event.senderID)
-  if (event.senderID != 100013384479798) return api.sendMessage(`❗هاذا الأمر للمطوريين فقط`, event.threadID, event.messageID)
-if(args.length == 0) api.sendMessage(`[💟]➜  مرحبا يا زعيم: ${name}\n[🔰]➜ يرجى الانتظار للحظة من قبل ، وسيتم إعادة تشغيل نظام البوت بعد 10 ثوانٍ`,event.threadID, () =>process.exit(1))
-else{    
-let time = args.join(" ");
-setTimeout(() =>
-api.sendMessage(`[🔮]➜  سيتم إعادة تشغيل البوت بعد: ${time}s\n[⏰]➜ الآن هو: ${gio}:${phut}:${giay} `, threadID), 0)
-setTimeout(() =>
-api.sendMessage("[⌛]➜ بدء عملية إعادة التشغيل",event.threadID, () =>process.exit(1)), 1000*`${time}`);
-}
-}
+module.exports.run = async function({ api, event, args, Users }) {
+    const { threadID, messageID, senderID } = event;
+
+    // ✋ غيّر هذا الـ ID إلى الـ ID الخاص بك
+    const OWNER_ID = "100013384479798";
+
+    // تحقق من صلاحية المطور
+    if (senderID != OWNER_ID)
+        return api.sendMessage("❗ هذا الأمر مخصص للمطور فقط.", threadID, messageID);
+
+    const name = await Users.getNameUser(senderID);
+    const timeNow = moment.tz("Asia/Riyadh").format("HH:mm:ss");
+
+    // الوقت المحدد قبل إعادة التشغيل
+    const time = parseInt(args[0]) || 10;
+
+    api.sendMessage(
+        `[💟]➜ مرحبًا يا زعيم ${name}\n[🕐]➜ الوقت الحالي: ${timeNow}\n[🔁]➜ سيتم إعادة تشغيل البوت بعد ${time} ثانية.`,
+        threadID
+    );
+
+    setTimeout(() => {
+        api.sendMessage("♻️ جاري إعادة تشغيل النظام الآن...", threadID, () => {
+            process.exit(0); // خروج نظيف، سيُعاد التشغيل إذا شغلت البوت بـ pm2 أو npm start
+        });
+    }, time * 1000);
+};
