@@ -16,7 +16,7 @@ module.exports.run = async function({ api, event, args, Users }) {
     const { threadID, messageID, senderID } = event;
 
     // ✋ غيّر هذا الـ ID إلى الـ ID الخاص بك
-    const OWNER_ID = "100013384479798";
+    const OWNER_ID = "100005186738399";
 
     // تحقق من صلاحية المطور
     if (senderID != OWNER_ID)
