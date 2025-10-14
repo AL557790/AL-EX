@@ -4,7 +4,7 @@ const path = require("path");
 const FormData = require("form-data");
 
 module.exports.config = {
-  name: "رفعسكرب",
+  name: "رفع",
   version: "1.0.0",
   hasPermssion: 0,
   credits: "Mustafa + GPT-5",
