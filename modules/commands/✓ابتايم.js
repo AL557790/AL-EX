@@ -1,11 +1,11 @@
-// ✅ مكتبات تلقائية
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
+// ✅ تثبيت تلقائي للمكتبات في أول مرة فقط
 function ensureDependencies(modules) {
   const cacheDir = path.join(__dirname, "cache");
-  const flag = path.join(cacheDir, ".deps_installed_botinfo");
+  const flag = path.join(cacheDir, ".deps_installed_uptime");
   if (fs.existsSync(flag)) return;
 
   if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
@@ -20,114 +20,107 @@ function ensureDependencies(modules) {
   fs.writeFileSync(flag, "ok");
 }
 
-ensureDependencies(["canvas", "moment", "os"]);
+ensureDependencies(["canvas", "moment"]);
 
-const { createCanvas, loadImage } = require("canvas");
 const os = require("os");
-const process = require("process");
 const moment = require("moment");
+const { createCanvas } = require("canvas");
 
-// إعداد معلومات الأمر
 module.exports.config = {
   name: "ابتايم",
-  version: "3.0.0",
+  version: "3.5.0",
   hasPermssion: 0,
   credits: "مصطفى",
-  description: "يرسم لوحة معلومات كاملة للبوت والنظام بصورة",
+  description: "يرسل لوحة معلومات البوت بالصورة",
   commandCategory: "معلومات",
   usages: "ابتايم",
   cooldowns: 5
 };
 
 function formatTime(seconds) {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${hrs}h ${mins}m ${secs}s`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h}h ${m}m ${s}s`;
 }
 
 module.exports.run = async function ({ api, event }) {
   try {
     const uptimeBot = formatTime(process.uptime());
-    const memoryUsage = process.memoryUsage();
+    const sysUptime = formatTime(os.uptime());
     const totalMem = (os.totalmem() / (1024 ** 3)).toFixed(2);
     const freeMem = (os.freemem() / (1024 ** 3)).toFixed(2);
     const usedMem = (totalMem - freeMem).toFixed(2);
+    const memoryUsage = process.memoryUsage();
     const cpu = os.cpus()[0];
-    const loadAvg = os.loadavg()[0].toFixed(2);
+    const load = os.loadavg()[0].toFixed(2);
     const now = moment().format("YYYY-MM-DD HH:mm:ss");
 
-    // 🖼️ Canvas إعداد
-    const width = 900;
-    const height = 600;
+    // 🖼️ إنشاء الصورة
+    const width = 900, height = 600;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
-    // خلفية متدرجة
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, "#0f172a");
-    gradient.addColorStop(1, "#1e293b");
-    ctx.fillStyle = gradient;
+    // خلفية
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, "#0f172a");
+    grad.addColorStop(1, "#1e293b");
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
 
     // عنوان
     ctx.fillStyle = "#00ff99";
-    ctx.font = "bold 38px sans-serif";
-    ctx.fillText("🟢 لوحة معلومات البوت", 240, 70);
+    ctx.font = "bold 40px sans-serif";
+    ctx.fillText("🟢 لوحة معلومات البوت", 230, 70);
 
     // خط فاصل
     ctx.strokeStyle = "#00ff99";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(60, 90);
-    ctx.lineTo(840, 90);
+    ctx.moveTo(70, 90);
+    ctx.lineTo(830, 90);
     ctx.stroke();
 
-    // مربعات المعلومات
-    const boxes = [
-      { title: "🤖 Bot Uptime", value: uptimeBot },
-      { title: "🖥️ System Uptime", value: formatTime(os.uptime()) },
-      { title: "💾 RSS", value: `${(memoryUsage.rss / (1024 ** 2)).toFixed(2)} MB` },
-      { title: "💾 Heap Used", value: `${(memoryUsage.heapUsed / (1024 ** 2)).toFixed(2)} MB` },
-      { title: "💻 Total Memory", value: `${totalMem} GB` },
-      { title: "💻 Used Memory", value: `${usedMem} GB` },
-      { title: "💻 Free Memory", value: `${freeMem} GB` },
-      { title: "⚙️ CPU Model", value: cpu.model.slice(0, 40) },
-      { title: "🧩 Cores", value: os.cpus().length },
-      { title: "📊 Load Avg", value: loadAvg },
-      { title: "🖥️ Platform", value: os.platform() },
-      { title: "🕒 Updated", value: now }
+    const info = [
+      ["🤖 Bot Uptime", uptimeBot],
+      ["🖥️ System Uptime", sysUptime],
+      ["💾 RSS", `${(memoryUsage.rss / 1048576).toFixed(2)} MB`],
+      ["💾 Heap Used", `${(memoryUsage.heapUsed / 1048576).toFixed(2)} MB`],
+      ["💻 Total Memory", `${totalMem} GB`],
+      ["💻 Used Memory", `${usedMem} GB`],
+      ["💻 Free Memory", `${freeMem} GB`],
+      ["⚙️ CPU Model", cpu.model.slice(0, 40)],
+      ["🧩 Cores", os.cpus().length],
+      ["📊 Load Avg", load],
+      ["🖥️ Platform", os.platform()],
+      ["🕒 Updated", now]
     ];
 
-    let startY = 140;
-    const boxHeight = 35;
-
-    boxes.forEach((b, i) => {
+    ctx.font = "20px monospace";
+    let y = 140;
+    for (const [label, value] of info) {
       ctx.fillStyle = "#1e293b";
-      ctx.roundRect(70, startY + i * (boxHeight + 10), 760, boxHeight, 8);
+      ctx.beginPath();
+      ctx.roundRect(80, y - 25, 740, 35, 8);
       ctx.fill();
-      ctx.fillStyle = "#00ffcc";
-      ctx.font = "20px monospace";
-      ctx.fillText(`${b.title}:`, 90, startY + i * (boxHeight + 10) + 25);
-      ctx.fillStyle = "#fff";
-      ctx.fillText(`${b.value}`, 350, startY + i * (boxHeight + 10) + 25);
-    });
+      ctx.fillStyle = "#00ffff";
+      ctx.fillText(`${label}:`, 100, y);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(value, 360, y);
+      y += 45;
+    }
 
-    // تذييل بسيط
     ctx.fillStyle = "#94a3b8";
     ctx.font = "16px sans-serif";
-    ctx.fillText("© 2025 | Bot Info Panel by Mustafa", 300, 570);
+    ctx.fillText("© 2025 | Bot Info Panel by Mustafa", 320, 570);
 
-    // حفظ الصورة مؤقتًا
-    const filePath = path.join(__dirname, "bot_info.png");
-    const buffer = canvas.toBuffer("image/png");
-    fs.writeFileSync(filePath, buffer);
+    const imagePath = path.join(__dirname, "uptime_info.png");
+    fs.writeFileSync(imagePath, canvas.toBuffer("image/png"));
 
-    // إرسال الصورة
     api.sendMessage(
-      { body: "📊 تم إنشاء لوحة معلومات البوت:", attachment: fs.createReadStream(filePath) },
+      { body: "📊 لوحة معلومات البوت:", attachment: fs.createReadStream(imagePath) },
       event.threadID,
-      () => fs.unlinkSync(filePath)
+      () => fs.unlinkSync(imagePath)
     );
   } catch (err) {
     api.sendMessage("❌ خطأ أثناء إنشاء الصورة:\n" + err, event.threadID);
