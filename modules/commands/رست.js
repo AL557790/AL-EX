@@ -3,7 +3,7 @@ const moment = require("moment-timezone");
 module.exports.config = {
     name: "ريست",
     version: "2.0.3",
-    hasPermssion: 3,
+    hasPermssion: 0,
     credits: "Jukie + تعديل مصطفى",
     description: "إعادة تشغيل البوت",
     commandCategory: "النظام",
