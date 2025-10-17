@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 
 function startBot() {
-  const bot = spawn("node", ["bot.js"], {
+  const bot = spawn("node", ["mirai.js"], {
     stdio: "inherit",
     shell: true
   });
