@@ -1,42 +1,33 @@
+const os = require("os");
+const process = require("process");
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-// ✅ تثبيت تلقائي للمكتبات في أول مرة فقط
-function ensureDependencies(modules) {
-  const cacheDir = path.join(__dirname, "cache");
-  const flag = path.join(cacheDir, ".deps_installed_uptime");
-  if (fs.existsSync(flag)) return;
-
-  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-  for (const mod of modules) {
-    try {
-      require.resolve(mod);
-    } catch {
-      console.log(`📦 تثبيت ${mod}...`);
-      execSync(`npm install ${mod} -s`, { stdio: "inherit" });
-    }
+// ✅ تثبيت تلقائي للمكتبة إذا كانت ناقصة
+function ensureModule(name) {
+  try {
+    require.resolve(name);
+  } catch {
+    execSync(`npm install ${name} -s`, { stdio: "inherit" });
   }
-  fs.writeFileSync(flag, "ok");
 }
+ensureModule("canvas");
 
-ensureDependencies(["canvas", "moment"]);
-
-const os = require("os");
-const moment = require("moment");
 const { createCanvas } = require("canvas");
 
 module.exports.config = {
   name: "ابتايم",
-  version: "3.5.0",
+  version: "5.0.0",
   hasPermssion: 0,
   credits: "مصطفى",
-  description: "يرسل لوحة معلومات البوت بالصورة",
+  description: "لوحة معلومات البوت بتصميم احترافي بخلفية متدرجة ولمعان",
   commandCategory: "معلومات",
   usages: "ابتايم",
   cooldowns: 5
 };
 
+// تنسيق الوقت
 function formatTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -45,84 +36,69 @@ function formatTime(seconds) {
 }
 
 module.exports.run = async function ({ api, event }) {
-  try {
-    const uptimeBot = formatTime(process.uptime());
-    const sysUptime = formatTime(os.uptime());
-    const totalMem = (os.totalmem() / (1024 ** 3)).toFixed(2);
-    const freeMem = (os.freemem() / (1024 ** 3)).toFixed(2);
-    const usedMem = (totalMem - freeMem).toFixed(2);
-    const memoryUsage = process.memoryUsage();
-    const cpu = os.cpus()[0];
-    const load = os.loadavg()[0].toFixed(2);
-    const now = moment().format("YYYY-MM-DD HH:mm:ss");
+  const uptime = formatTime(process.uptime());
+  const totalMem = (os.totalmem() / (1024 ** 3)).toFixed(2);
+  const freeMem = (os.freemem() / (1024 ** 3)).toFixed(2);
+  const usedMem = (totalMem - freeMem).toFixed(2);
+  const cpu = os.cpus()[0].model;
+  const platform = os.platform();
+  const time = new Date().toLocaleString("ar-EG");
 
-    // 🖼️ إنشاء الصورة
-    const width = 900, height = 600;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
+  // 🖼️ إنشاء الصورة
+  const canvas = createCanvas(800, 450);
+  const ctx = canvas.getContext("2d");
 
-    // خلفية
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, "#0f172a");
-    grad.addColorStop(1, "#1e293b");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
+  // 🎨 خلفية متدرجة (أزرق → بنفسجي)
+  const gradient = ctx.createLinearGradient(0, 0, 800, 450);
+  gradient.addColorStop(0, "#3B82F6"); // أزرق
+  gradient.addColorStop(1, "#9333EA"); // بنفسجي
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 800, 450);
 
-    // عنوان
-    ctx.fillStyle = "#00ff99";
-    ctx.font = "bold 40px sans-serif";
-    ctx.fillText("🟢 لوحة معلومات البوت", 230, 70);
+  // 🩶 طبقة شفافة ناعمة فوق الخلفية
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(0, 0, 800, 450);
 
-    // خط فاصل
-    ctx.strokeStyle = "#00ff99";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(70, 90);
-    ctx.lineTo(830, 90);
-    ctx.stroke();
+  // ✨ إعداد تأثيرات الظل للنصوص
+  ctx.shadowColor = "rgba(255,255,255,0.6)";
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
-    const info = [
-      ["🤖 Bot Uptime", uptimeBot],
-      ["🖥️ System Uptime", sysUptime],
-      ["💾 RSS", `${(memoryUsage.rss / 1048576).toFixed(2)} MB`],
-      ["💾 Heap Used", `${(memoryUsage.heapUsed / 1048576).toFixed(2)} MB`],
-      ["💻 Total Memory", `${totalMem} GB`],
-      ["💻 Used Memory", `${usedMem} GB`],
-      ["💻 Free Memory", `${freeMem} GB`],
-      ["⚙️ CPU Model", cpu.model.slice(0, 40)],
-      ["🧩 Cores", os.cpus().length],
-      ["📊 Load Avg", load],
-      ["🖥️ Platform", os.platform()],
-      ["🕒 Updated", now]
-    ];
+  // 🧠 العنوان الرئيسي
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 38px Sans";
+  ctx.fillText("📊 لوحة معلومات البوت", 210, 70);
 
-    ctx.font = "20px monospace";
-    let y = 140;
-    for (const [label, value] of info) {
-      ctx.fillStyle = "#1e293b";
-      ctx.beginPath();
-      ctx.roundRect(80, y - 25, 740, 35, 8);
-      ctx.fill();
-      ctx.fillStyle = "#00ffff";
-      ctx.fillText(`${label}:`, 100, y);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(value, 360, y);
-      y += 45;
-    }
+  // 🔹 إزالة الظل القوي للنصوص الباقية
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 8;
 
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "16px sans-serif";
-    ctx.fillText("© 2025 | Bot Info Panel by Mustafa", 320, 570);
+  // 📋 معلومات النظام
+  ctx.font = "24px Sans";
+  ctx.fillStyle = "#E0E7FF";
+  ctx.fillText(`⏱️ وقت التشغيل: ${uptime}`, 100, 150);
+  ctx.fillText(`💾 الذاكرة المستخدمة: ${usedMem} GB / ${totalMem} GB`, 100, 200);
+  ctx.fillText(`💻 المعالج: ${cpu}`, 100, 250);
+  ctx.fillText(`🪟 النظام: ${platform}`, 100, 300);
+  ctx.fillText(`🕐 الوقت الحالي: ${time}`, 100, 350);
 
-    const imagePath = path.join(__dirname, "uptime_info.png");
-    fs.writeFileSync(imagePath, canvas.toBuffer("image/png"));
+  // 👑 توقيع المصمم
+  ctx.font = "bold 26px Sans";
+  ctx.fillStyle = "#FFD700";
+  ctx.shadowColor = "#FACC15";
+  ctx.shadowBlur = 15;
+  ctx.fillText("👑 المطور: مصطفى", 100, 400);
 
-    api.sendMessage(
-      { body: "📊 لوحة معلومات البوت:", attachment: fs.createReadStream(imagePath) },
-      event.threadID,
-      () => fs.unlinkSync(imagePath)
-    );
-  } catch (err) {
-    api.sendMessage("❌ خطأ أثناء إنشاء الصورة:\n" + err, event.threadID);
-  }
+  // 🖼️ حفظ وإرسال
+  const filePath = path.join(__dirname, "uptime_glow.png");
+  fs.writeFileSync(filePath, canvas.toBuffer());
+  api.sendMessage(
+    {
+      body: "⚙️ لوحة معلومات البوت ✨",
+      attachment: fs.createReadStream(filePath)
+    },
+    event.threadID,
+    () => fs.unlinkSync(filePath)
+  );
 };
