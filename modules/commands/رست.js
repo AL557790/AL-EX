@@ -19,7 +19,7 @@ module.exports.run = async function({ api, event, args }) {
     if (senderID != OWNER_ID)
         return api.sendMessage("❗ هذا الأمر مخصص للمطور فقط.", threadID, messageID);
 
-    const timeNow = moment.tz("Asia/Riyadh").format("HH:mm:ss");
+    const timeNow = moment.tz("Africa/Algiers").format("HH:mm:ss"); // توقيت الجزائر
     const time = parseInt(args[0]) || 10;
 
     api.sendMessage(
