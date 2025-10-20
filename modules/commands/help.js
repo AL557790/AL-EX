@@ -1,5 +1,4 @@
 const fs = require("fs");
-const request = require("request");
 
 module.exports.config = {
     name: "اوامر",
@@ -29,8 +28,8 @@ module.exports.run = function({ api, event, args, getText }) {
     const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
     const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
 
-    // 🔹 رابط صورة الأوامر
-    const imgURL = "https://files.catbox.moe/0v911k.jpg";
+    // 🔹 مسار الصورة المحلي
+    const imgPath = __dirname + "/app.jpg";
 
     // 🔹 إذا لم يجد المستخدم الأمر أو رقم الصفحة
     if (!command) {
@@ -49,23 +48,16 @@ module.exports.run = function({ api, event, args, getText }) {
 
         const text = `╰───────────────────╯\n\n📜 الصفحة (${page}/${Math.ceil(arrayInfo.length / numberOfOnePage)})\n📟 اكتب: ${prefix}اوامر [رقم الصفحة]\n🔢 مجموع الأوامر: ${arrayInfo.length}`;
 
-        // 🔹 التأكد من وجود مجلد cache
-        const cacheDir = __dirname + "/cache";
-        if (!fs.existsSync(cacheDir)) {
-            fs.mkdirSync(cacheDir, { recursive: true });
-        }
-
-        // 🔹 تحميل الصورة مؤقتاً ثم إرسالها مع الرسالة
-        const callback = () => {
-            api.sendMessage({
+        // 🔹 إرسال الرسالة مع الصورة المحلية
+        if (fs.existsSync(imgPath)) {
+            return api.sendMessage({
                 body: msg + text,
-                attachment: fs.createReadStream(cacheDir + "/help.jpg")
-            }, threadID, () => fs.unlinkSync(cacheDir + "/help.jpg"));
-        };
-
-        return request(encodeURI(imgURL))
-            .pipe(fs.createWriteStream(cacheDir + "/help.jpg"))
-            .on("close", callback);
+                attachment: fs.createReadStream(imgPath)
+            }, threadID);
+        } else {
+            // إذا الصورة غير موجودة، يرسل الرسالة بدون صورة
+            return api.sendMessage(msg + text, threadID);
+        }
     }
 
     // 🔹 إذا كتب المستخدم اسم أمر محدد
