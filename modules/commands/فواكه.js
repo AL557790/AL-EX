@@ -1,51 +1,59 @@
+const fruits = ["🍎", "🍌", "🍒", "🍇", "🍉", "🍓", "🍍", "🍏", "🥝", "🥭", "🫒"];
+
 module.exports.config = {
   name: "فواكه",
-  version: "1.0.0",
+  version: "2.0.0",
   hasPermssion: 0,
   credits: "مصطفى",
-  description: "🍏🍍🥭🥝🫒 لعبة الفواكه بالرهان",
+  description: "لعبة فواكه احترافية",
   commandCategory: "العاب",
-  usages: "فواكه <المبلغ>",
-  cooldowns: 5
+  usages: "[المبلغ]",
+  cooldowns: 5,
 };
 
-module.exports.run = async function ({ api, event, Currencies, args, Users }) {
-  const bet = parseInt(args[0]);
-  const fruits = ["🥭", "🍍", "🍏", "🥝", "🫒"];
-
-  // تحقق من الكتابة
-  if (!bet || bet <= 0) {
-    return api.sendMessage("⚠️ اكتب مبلغ صحيح.\nمثال: فواكه 100", event.threadID, event.messageID);
+module.exports.run = async function({ api, event, args }) {
+  const amount = parseInt(args[0]);
+  if (!amount || isNaN(amount)) {
+    return api.sendMessage("❂ من فضلك أدخل المبلغ مثل: .فواكه 100", event.threadID, event.messageID);
   }
 
-  // بيانات اللاعب
-  const userData = await Currencies.getData(event.senderID);
-  const userMoney = userData.money;
-  const userName = await Users.getNameUser(event.senderID);
-
-  if (userMoney < bet) {
-    return api.sendMessage(`💸 ${userName}، ما عندك رصيد كافي (${userMoney}$ فقط).`, event.threadID, event.messageID);
-  }
-
-  // خصم المبلغ
-  await Currencies.decreaseMoney(event.senderID, bet);
+  const name = event.senderName;
 
   // توليد 5 فواكه عشوائية
-  let result = [];
+  const result = [];
   for (let i = 0; i < 5; i++) {
     result.push(fruits[Math.floor(Math.random() * fruits.length)]);
   }
 
-  // التحقق من الفوز
-  let resultMsg = "";
-  if (result.every(fruit => fruit === result[0])) {
-    // كل الخانات متشابهة
-    const prize = bet * 2;
-    await Currencies.increaseMoney(event.senderID, prize);
-    resultMsg = `🎉 ${userName} مبروك!\nطلع لك ${result.join("")}\nربحت ${prize}$ 💰`;
-  } else {
-    resultMsg = `😢 ${userName} طلع لك ${result.join("")}\nخسرت ${bet}$!`;
+  // تحديد النتيجة (ربح، خسارة، تعادل)
+  const chance = Math.random();
+  let msg = "";
+
+  if (chance < 0.4) { // خسارة
+    msg = `✧══════ ∘◦❁◦∘ ══════✧
+
+‣ 👤 ${name}  
+‣ ${result.join(" ")}  
+‣ 😢 خسرت ${amount}$
+
+✧════════════════✧`;
+  } else if (chance < 0.7) { // تعادل
+    msg = `✧══════ ∘◦❁◦∘ ══════✧
+
+‣ 😐 ${name}  
+‣ ${result.join(" ")}  
+‣ ⚖️ تعادل، لم تربح ولم تخسر!
+
+✧════════════════✧`;
+  } else { // فوز
+    msg = `✧══════ ∘◦❁◦∘ ══════✧
+
+‣ 👑 ${name}  
+‣ ${result.join(" ")}  
+‣ 😍 ربحت ${amount}$!
+
+✧════════════════✧`;
   }
 
-  api.sendMessage(resultMsg, event.threadID, event.messageID);
+  api.sendMessage(msg, event.threadID, event.messageID);
 };
