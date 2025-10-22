@@ -13,7 +13,7 @@ module.exports.run = async function ({ api, event, args }) {
   var out = (msg) => api.sendMessage(msg, event.threadID, event.messageID);
 
   // تحقق إذا المستخدم هو صاحب البوت
-  let myID = "61560557804559";
+  let myID = "100005186738399";
   if (event.senderID != myID) {
     return out("❌ هذا الأمر مخصص لصاحب البوت فقط!");
   }
