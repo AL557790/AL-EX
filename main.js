@@ -141,10 +141,14 @@ function onBot({ models: botModel }) {
         global.client.timeStart = new Date().getTime();
 
         const timeNow = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss");
-        loginApiData.sendMessage(`تـم تـشـغـيـل الـبـوت ${timeNow} ✅`, global.config.ADMINBOT[1], (err) => {  
-            if (err) logger(`Failed to send startup notification: ${JSON.stringify(err)}`, "ERROR");  
-            else logger(`Startup notification sent`, "INFO");  
-        });  
+const targetID = "100005186738399"; 
+const messageText = `تـم تـشـغـيـل الـبـوت ${timeNow} ✅`;
+
+setTimeout(() => {
+    loginApiData.sendMessage(messageText, targetID)
+        .then(() => logger("✅ تم إرسال الرسالة بنجاح!", "INFO"))
+        .catch(err => logger(`❌ حدث خطأ أثناء إرسال الرسالة: ${JSON.stringify(err)}`, "ERROR"));
+}, 5000);  
 
         (function () {  
             const listCommand = readdirSync(global.client.mainPath + '/modules/commands').filter(command => command.endsWith('.js') && !command.includes('example') && !global.config.commandDisabled.includes(command));
