@@ -1,61 +1,71 @@
+const fs = require("fs");
+const path = require("path");
+
+const dbPath = path.join(__dirname, "includes", "balances.json");
+const START_BALANCE = 1000;
+
+// تحميل وحفظ الرصيد
+function loadBalances() {
+  if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify({}));
+  return JSON.parse(fs.readFileSync(dbPath, "utf-8"));
+}
+function saveBalances(balances) {
+  fs.writeFileSync(dbPath, JSON.stringify(balances, null, 2));
+}
+
 module.exports.config = {
-  name: "حجرة",
+  name: "عجلة",
   version: "1.0.0",
   hasPermssion: 0,
   credits: "مصطفى",
-  description: "🪨📄✂️ لعبة حجرة ورقة مقص بالرهان",
-  commandCategory: "العاب",
-  usages: "حجرة|ورقة|مقص <المبلغ>",
-  cooldowns: 5
+  description: "لعبة عجلة الحظ للربح أو الخسارة",
+  commandCategory: "games",
+  usages: "[المبلغ]",
+  cooldowns: 5,
 };
 
-module.exports.run = async function ({ api, event, Currencies, args, Users }) {
-  const choices = ["حجرة", "ورقة", "مقص"];
-  const playerChoice = args[0];
-  const bet = parseInt(args[1]);
-
-  // تحقق من الكتابة
-  if (!choices.includes(playerChoice) || !bet || bet <= 0) {
-    return api.sendMessage("⚠️ استعمل الأمر هكذا:\nحجرة 100\nورقة 200\nمقص 50", event.threadID, event.messageID);
+module.exports.run = async function({ api, event, args }) {
+  const amount = parseInt(args[0]);
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return api.sendMessage("❌ استخدم: .عجلة 100", event.threadID, event.messageID);
   }
 
-  // بيانات اللاعب
-  const userData = await Currencies.getData(event.senderID);
-  const userMoney = userData.money;
-  const userName = await Users.getNameUser(event.senderID);
+  const balances = loadBalances();
+  const userID = event.senderID;
 
-  if (userMoney < bet) {
-    return api.sendMessage(`💸 ${userName}، ما عندك رصيد كافي (${userMoney}$ فقط).`, event.threadID, event.messageID);
-  }
+  if (!balances[userID]) return api.sendMessage("⚠️ ليس لديك رصيد للعب عجلة الحظ.", event.threadID, event.messageID);
+  if (balances[userID] < amount) return api.sendMessage(`رصيدك الحالي: ${balances[userID]}$. لا يمكنك المراهنة بمبلغ ${amount}$`, event.threadID, event.messageID);
 
-  // خصم المبلغ من اللاعب
-  await Currencies.decreaseMoney(event.senderID, bet);
+  const userInfo = await api.getUserInfo(userID);
+  const name = userInfo[userID].name || "لاعب";
 
-  // اختيار البوت عشوائي
-  const botChoice = choices[Math.floor(Math.random() * choices.length)];
+  // خيارات عجلة الحظ
+  const wheel = [
+    { text: "💰 ربح نصف الرصيد", multiplier: 0.5 },
+    { text: "💰 ربح الرصيد كامل", multiplier: 1 },
+    { text: "💸 خسارة الرصيد", multiplier: -1 },
+    { text: "💎 مضاعف الرصيد ×2", multiplier: 2 },
+    { text: "⚖️ لا شيء", multiplier: 0 }
+  ];
 
-  let resultMsg = "";
-  if (
-    (playerChoice === "حجرة" && botChoice === "مقص") ||
-    (playerChoice === "ورقة" && botChoice === "حجرة") ||
-    (playerChoice === "مقص" && botChoice === "ورقة")
-  ) {
-    // اللاعب فاز
-    const prize = bet * 2;
-    await Currencies.increaseMoney(event.senderID, prize);
-    resultMsg = `🎉 ${userName} فزت!\nربحت ${prize}$ 💰`;
-  } else if (playerChoice === botChoice) {
-    // تعادل
-    await Currencies.increaseMoney(event.senderID, bet);
-    resultMsg = `🤝 تعادل! رجعلك رصيدك (${bet}$).`;
-  } else {
-    // اللاعب خسر
-    resultMsg = `😢 ${userName} خسرت ${bet}$.\nالبوت لعب ${botChoice} وفاز! 💻`;
-  }
+  // اختيار عشوائي من العجلة
+  const result = wheel[Math.floor(Math.random() * wheel.length)];
 
-  api.sendMessage(
-    `🪨📄✂️ لعبة حجرة ورقة مقص:\n\n👤 ${userName}: ${playerChoice}\n💻 البوت: ${botChoice}\n\n${resultMsg}`,
-    event.threadID,
-    event.messageID
-  );
+  // حساب التغير في الرصيد
+  let change = Math.floor(amount * result.multiplier);
+  balances[userID] += change;
+  if (balances[userID] < 0) balances[userID] = 0; // لا يمكن أن يكون الرصيد سالب
+
+  saveBalances(balances);
+
+  const msg = `
+🎡 عجلة الحظ 🎡
+
+👤 اللاعب: ${name}
+💵 المراهنة: ${amount}$
+🎯 النتيجة: ${result.text}
+💰 رصيدك الجديد: ${balances[userID]}$
+`;
+
+  return api.sendMessage(msg, event.threadID, event.messageID);
 };
