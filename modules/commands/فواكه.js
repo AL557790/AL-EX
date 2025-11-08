@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const fruits = ["🍎", "🍌", "🍒", "🍇", "🍉", "🍓", "🍍", "🍏", "🥝", "🥭", "🫒"];
-const dbPath = path.join(__dirname, "includes", "balances.json");
+const dbPath = path.join(__dirname, "💰Balances", "balances.json");
 const START_BALANCE = 1000;
 
 function loadBalances() {
