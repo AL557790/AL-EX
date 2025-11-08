@@ -1,72 +1,101 @@
-const fs = global.nodemodule["fs-extra"];
-const axios = global.nodemodule["axios"];
-const path = require('path');
-const { createCanvas, loadImage, registerFont } = require('@napi-rs/canvas');
+const { execSync } = require("child_process");
+const path = require("path");
 
+// --- تثبيت تلقائي للمكتبات الناقصة ---
+function ensureDependencies(mods) {
+  for (const mod of mods) {
+    try {
+      require.resolve(mod);
+    } catch (err) {
+      console.log(`📦 ${mod} غير مثبت - يتم تثبيته الآن...`);
+      try {
+        execSync(`npm install ${mod} --no-audit --no-fund`, { stdio: "inherit" });
+      } catch (e) {
+        console.error(`فشل تثبيت ${mod}. حاول تثبيته يدوياً: npm install ${mod}`);
+        throw e;
+      }
+    }
+  }
+}
+
+// أسماء الحزم التي نحتاجها
+ensureDependencies(["axios", "fs-extra", "canvas", "@napi-rs/canvas"]);
+
+// الآن نستدعي المكتبات بعد التأكد
+const fsExtra = require("fs-extra");
+const fs = require("fs");
+const axios = require("axios");
+
+// نحاول استخدام canvas الرسمي أولاً، وإن لم يوجد نستخدم @napi-rs/canvas
+let createCanvas, loadImage, registerFont;
+try {
+  ({ createCanvas, loadImage, registerFont } = require("canvas"));
+  console.log("استخدمنا مكتبة canvas (node-canvas).");
+} catch (e) {
+  try {
+    ({ createCanvas, loadImage, registerFont } = require("@napi-rs/canvas"));
+    console.log("استخدمنا مكتبة @napi-rs/canvas كبديل.");
+  } catch (err) {
+    console.error("لم نستطع تحميل مكتبة canvas أو @napi-rs/canvas. تأكد من تثبيتها يدوياً.");
+    throw err;
+  }
+}
+
+// تأكد من وجود مجلد cache
+const tmpDir = path.join(__dirname, "cache");
+fsExtra.ensureDirSync(tmpDir);
+
+// مثال كامل لوحدة أمر (قالب عام يمكنك تعديله)
 module.exports.config = {
   name: "هكر",
-  version: "1.1.0",
+  version: "1.1.1",
   hasPermssion: 0,
   credits: "عمر",
-  description: "تهكير حسساب اي شخص ",
+  description: "تهكير حساب (مثال صورة)",
   commandCategory: "صور",
   usages: "@تاك",
-  dependencies: {
-        "axios": "",
-        "fs-extra": "",
-        "@napi-rs/canvas": ""
-  },
   cooldowns: 120
 };
 
-module.exports.wrapText = (ctx, name, maxWidth) => {
+module.exports.wrapText = (ctx, text, maxWidth) => {
   return new Promise(resolve => {
-    if (ctx.measureText(name).width < maxWidth) return resolve([name]);
-    if (ctx.measureText('W').width > maxWidth) return resolve(null);
-    const words = name.split(' ');
+    if (ctx.measureText(text).width < maxWidth) return resolve([text]);
+    const words = text.split(' ');
     const lines = [];
     let line = '';
     while (words.length > 0) {
-      let split = false;
-      while (ctx.measureText(words[0]).width >= maxWidth) {
-        const temp = words[0];
-        words[0] = temp.slice(0, -1);
-        if (split) words[1] = `${temp.slice(-1)}${words[1]}`;
-        else {
-          split = true;
-          words.splice(1, 0, temp.slice(-1));
-        }
-      }
-      if (ctx.measureText(`${line}${words[0]}`).width < maxWidth) line += `${words.shift()} `;
-      else {
+      const testLine = line + words[0] + ' ';
+      if (ctx.measureText(testLine).width <= maxWidth) {
+        line = testLine;
+        words.shift();
+      } else {
         lines.push(line.trim());
         line = '';
       }
-      if (words.length === 0) lines.push(line.trim());
     }
+    if (line) lines.push(line.trim());
     return resolve(lines);
   });
-}
+};
 
 module.exports.run = async function ({ args, Users, api, event }) {
   try {
-    const tmpDir = path.join(__dirname, 'cache');
-    await fs.ensureDir(tmpDir);
+    // تأكد مجدداً من وجود المجلد المؤقت
+    fsExtra.ensureDirSync(tmpDir);
 
     const pathImg = path.join(tmpDir, `hack_${Date.now()}.png`);
     const pathAvt = path.join(tmpDir, `Avt_${Date.now()}.png`);
 
-    // استخدام آيدي المستخدم الذي يشغل الأمر (أنت) بدلاً من الشخص المذكور
-    const id = event.senderID; // هذا سيأخذ آيديك أنت
-    const name = "Mquiro Ston'dr"; // اسمك الثابت
+    const id = event.senderID;
+    const name = "Mquiro Ston'dr";
 
-    // تحميل الخلفية
-    const backgroundUrl = "https://scontent.xx.fbcdn.net/v/t1.15752-9/575752057_1100487991984290_4943061121323864432_n.jpg?stp=dst-jpg_p480x480_tt6&_nc_cat=108&ccb=1-7&_nc_sid=9f807c&_nc_eui2=AeFgiEFooBwMOygoSKcp0jmH2qPteszDIL7ao-16zMMgvk2HZquJRf0OATIzBNaQBhQegvKkg6MY12wGlL0shzVU&_nc_ohc=jRNOgJB-C-0Q7kNvwEsNe12&_nc_oc=AdkXJMCkGS6cOrwa7XNq-kgCpEuDoQo5plaQbVI6I-TkLNitSL6AvJ-G5iAcYh4dvRw&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.xx&oh=03_Q7cD3wHziktRhBX61pP7UrRAYN2wxrbISfVhmpc1SPc06cVS4A&oe=6935E9FB";
+    // خلفية ثابتة (يمكن تغييره)
+    const backgroundUrl = "https://i.ibb.co/3Wg3T6f/cover-template.jpg";
     const bgBuffer = (await axios.get(backgroundUrl, { responseType: "arraybuffer" })).data;
     fs.writeFileSync(pathImg, Buffer.from(bgBuffer));
 
-    // تحميل صورة البروفايل الخاصة بك
-    const avatarUrl = `https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+    // صورة البروفايل
+    const avatarUrl = `https://graph.facebook.com/${id}/picture?width=512&height=512`;
     const avatarBuffer = (await axios.get(avatarUrl, { responseType: "arraybuffer" })).data;
     fs.writeFileSync(pathAvt, Buffer.from(avatarBuffer));
 
@@ -80,17 +109,18 @@ module.exports.run = async function ({ args, Users, api, event }) {
     // رسم الخلفية
     ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
 
-    // رسم صورة البروفايل المصغرة
+    // رسم دائرة للصورة الشخصية
     const avatarSize = 120;
+    ctx.save();
     ctx.beginPath();
     ctx.arc(83 + avatarSize / 2, 437 + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
     ctx.drawImage(avatarImage, 83, 437, avatarSize, avatarSize);
-    ctx.resetTransform(); // إعادة الكليب
+    ctx.restore();
 
-    // كتابة اسمك الثابت أعلى الصورة
-    ctx.font = "bold 28px Arial";
+    // كتابة النص
+    ctx.font = "bold 28px Sans";
     ctx.fillStyle = "#FF0000";
     ctx.textAlign = "left";
     const lines = await this.wrapText(ctx, name, 500);
@@ -103,19 +133,18 @@ module.exports.run = async function ({ args, Users, api, event }) {
     // حفظ الصورة النهائية
     fs.writeFileSync(pathImg, canvas.toBuffer('image/png'));
 
-    // إرسال الصورة
+    // إرسال الصورة واللازمة التنظيف
     await api.sendMessage(
       { body: "", attachment: fs.createReadStream(pathImg) },
       event.threadID,
       async () => {
-        try { fs.unlinkSync(pathImg); } catch(e){}
-        try { fs.unlinkSync(pathAvt); } catch(e){}
+        try { fs.unlinkSync(pathImg); } catch (e) {}
+        try { fs.unlinkSync(pathAvt); } catch (e) {}
       },
       event.messageID
     );
-
   } catch (err) {
     console.error(err);
     return api.sendMessage('❌ حدث خطأ أثناء معالجة الصورة.', event.threadID, event.messageID);
   }
-}
+};
