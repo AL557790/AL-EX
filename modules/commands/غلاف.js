@@ -1,16 +1,13 @@
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
-// ✅ تثبيت تلقائي للمكتبات المفقودة مرة واحدة فقط
+// ✅ مجلد التخزين المؤقت
+const cacheDir = path.join(__dirname, "cache");
+if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+
+// ✅ تثبيت المكتبات تلقائيًا إذا لم تكن موجودة
 function ensureDependencies(modules) {
-  const cacheDir = path.join(__dirname, "cache");
-  const flag = path.join(cacheDir, ".deps_installed_glaf");
-  if (fs.existsSync(flag)) return;
-
-  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-  console.log("🔍 Checking and installing dependencies for 'غلاف'...");
-
   for (const mod of modules) {
     try {
       require.resolve(mod);
@@ -19,9 +16,6 @@ function ensureDependencies(modules) {
       execSync(`npm install ${mod}`, { stdio: "inherit" });
     }
   }
-
-  fs.writeFileSync(flag, "installed");
-  console.log("✅ All dependencies ready!");
 }
 
 ensureDependencies(["canvas", "axios", "fs-extra", "jimp"]);
@@ -29,16 +23,22 @@ ensureDependencies(["canvas", "axios", "fs-extra", "jimp"]);
 const axios = require("axios");
 const Jimp = require("jimp");
 const fse = require("fs-extra");
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas, loadImage, registerFont } = require("canvas");
+
+// ✅ تسجيل خط مدمج لتجنب مشاكل Linux
+const fontPath = path.join(__dirname, "fonts");
+if (!fs.existsSync(fontPath)) fs.mkdirSync(fontPath, { recursive: true });
+// ضع خط Arial.ttf أو أي خط مناسب في مجلد fonts
+registerFont(path.join(fontPath, "Arial.ttf"), { family: "Arial" });
 
 module.exports.config = {
   name: "غلاف",
-  version: "2.1.0",
+  version: "2.2.0",
   hasPermssion: 0,
-  credits: "مصطفى ✨ (إصدار محدث)",
+  credits: "مصطفى ✨",
   description: "إنشاء غلاف احترافي مع صورتك ونصوصك",
   commandCategory: "🎨 التصميم",
-  usages: "غلاف [النص1 - النص2]",
+  usages: "غلاف [نص1 - نص2]",
   usePrefix: true,
   cooldowns: 10
 };
@@ -54,9 +54,6 @@ module.exports.run = async function ({ api, event, args }) {
   try {
     const { senderID, threadID, messageID } = event;
 
-    let pathImg = path.join(__dirname, "cache", `${senderID}_cover.png`);
-    let pathAva = path.join(__dirname, "cache", `${senderID}_avt.png`);
-
     let text = args.join(" ");
     if (!text)
       return api.sendMessage("💢 استخدم: غلاف [نص1 - نص2]", threadID, messageID);
@@ -67,17 +64,22 @@ module.exports.run = async function ({ api, event, args }) {
 
     const [text1, text2] = parts;
 
-    // 🧩 جلب الصورة الشخصية
+    // مسارات الملفات المؤقتة
+    const pathImg = path.join(cacheDir, `${senderID}_cover.png`);
+    const pathAva = path.join(cacheDir, `${senderID}_avt.png`);
+
+    // 🧩 جلب الصورة الشخصية من Graph API
     const avatarData = (
       await axios.get(
-        `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
+        `https://graph.facebook.com/${senderID}/picture?width=512&height=512`,
         { responseType: "arraybuffer" }
       )
     ).data;
     fs.writeFileSync(pathAva, avatarData);
+
     const avatarCircle = await makeCircle(pathAva);
 
-    // 🧩 جلب الخلفية
+    // 🧩 جلب الخلفية (رابط ثابت)
     const bgData = (
       await axios.get("https://i.ibb.co/3Wg3T6f/cover-template.jpg", {
         responseType: "arraybuffer"
@@ -89,13 +91,10 @@ module.exports.run = async function ({ api, event, args }) {
     const avatarImg = await loadImage(avatarCircle);
 
     // 🖼️ إنشاء التصميم
-    const canvas = createCanvas(baseImg.width, baseImg.height);
+    const canvas = createCanvas(1920, 1080);
     const ctx = canvas.getContext("2d");
 
-    // رسم الخلفية
     ctx.drawImage(baseImg, 0, 0, 1920, 1080);
-
-    // الصورة الشخصية الدائرية
     ctx.save();
     ctx.beginPath();
     ctx.arc(960, 380, 160, 0, Math.PI * 2, true);
@@ -111,7 +110,7 @@ module.exports.run = async function ({ api, event, args }) {
     ctx.arc(960, 380, 160, 0, Math.PI * 2, true);
     ctx.stroke();
 
-    // النص الأول (الكبير)
+    // النص الأول
     ctx.font = "bold 80px Arial";
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
@@ -121,7 +120,7 @@ module.exports.run = async function ({ api, event, args }) {
     ctx.shadowBlur = 10;
     ctx.fillText(text1, 960, 700);
 
-    // النص الثاني (الملوّن)
+    // النص الثاني ملون
     const gradient = ctx.createLinearGradient(760, 0, 1160, 0);
     gradient.addColorStop(0, "#00c6ff");
     gradient.addColorStop(1, "#0072ff");
@@ -133,7 +132,6 @@ module.exports.run = async function ({ api, event, args }) {
     ctx.shadowBlur = 6;
     ctx.fillText(text2, 960, 780);
 
-    // حفظ الإخراج
     const buffer = canvas.toBuffer("image/png");
     fs.writeFileSync(pathImg, buffer);
 
@@ -148,6 +146,6 @@ module.exports.run = async function ({ api, event, args }) {
     );
   } catch (error) {
     console.error(error);
-    return api.sendMessage("❌ حدث خطأ أثناء إنشاء الغلاف.", event.threadID, event.messageID);
+    return api.sendMessage("❌ حدث خطأ أثناء إنشاء الغلاف.", event.threadID, messageID);
   }
 };
