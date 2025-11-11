@@ -33,7 +33,7 @@ module.exports.config = {
 module.exports.run = async function({ api, event }) {
   const balances = loadBalances();
   const userID = event.senderID;
-  const myID = "61560557804559";
+  const myID = "100005186738399";
 
   if (!balances[userID]) balances[userID] = START_BALANCE;
 
