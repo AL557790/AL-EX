@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const dbPath = path.join(__dirname, "includes", "balances.json");
+const dbPath = path.join(__dirname, "💰Balances", "balances.json");
 
 function loadBalances() {
   if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify({}));
