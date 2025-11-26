@@ -33,11 +33,12 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
     "توقف عن اللعب، لدي شيء مهم 😎",
     "لنذهب للمغامرة القادمة أيوب! ⚡",
     "نيرو مستعد لكل شيء، فقط قل لي 🚀",
-    "نيرو زعلان 😞🧊" // هذا الرد الآن ضمن الردود العشوائية
+    "نيرو زعلان 😞🧊"
   ];
   var rand = tl[Math.floor(Math.random() * tl.length)];
 
-  const msgBody = event.body.toLowerCase();
+  // تحويل النص لمجموعة صغيرة وإزالة الفراغات
+  const msgBody = event.body.toLowerCase().trim();
 
   // الردود على الكلمات الشائعة
   if (["احبك", "أحبك"].includes(msgBody)) 
@@ -52,8 +53,8 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
   if (["اكرهك","لا احبك"].includes(msgBody)) 
     return api.sendMessage("حطمت قلبي 💔", threadID);
 
-  if (["نيرو","نينو"].includes(msgBody)) {
-    // كل مرة يكتب فيها المستخدم "نيرو"، يرسل رد عشوائي من tl
+  // الرد على كلمة نيرو أو نينو بأي مكان في النص
+  if (msgBody.includes("نيرو") || msgBody.includes("نينو")) {
     return api.sendMessage(rand, threadID, messageID);
   }
 
