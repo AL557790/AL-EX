@@ -2,58 +2,92 @@ const axios = require('axios');
 
 module.exports.config = {
     name: "ذكاء",
-    version: "4.3.7",
+    version: "5.0.0",
     hasPermssion: 0,
-    credits: "𝐘-𝐀𝐍𝐁𝐔",
-    description: "تكلم مع GPT | نيرو",
-    commandCategory: "دردشة مع نيرو",
-    usages: "[نص]",
-    cooldowns: 5
+    credits: "𝐘-𝐀𝐍𝐁𝐔 + Update 2025",
+    description: "tasty",
+    commandCategory: "الذكاء الاصطناعي",
+    usages: "[سؤالك]",
+    cooldowns: 3
 };
 
-async function sendRequest(prompt) {
+async function neroAI(prompt) {
+    const url = "https://api.binjie.fun/api/generateStream?refer__1360=eqjhY5lKBIC7DsD7GwPxiuDQwW400Q2fbd";
+
     const data = {
         prompt: prompt,
         userId: "#/chat/1735674979151",
         network: true,
         system: "",
         withoutContext: false,
-        stream: false
+        stream: true   // مهم تكون true عشان يشتغل
     };
 
     const headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Linux; Android 8.1.0; VOX Alpha Build/O11019) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.6478.123 Mobile Safari/537.36",
-            "Origin": "https://cht18.aichatosclx.com",
-            "X-Requested-With": "pure.lite.browser"
-  };
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36",
+        "Origin": "https://cht18.aichatosclx.com",
+        "Referer": "https://cht18.aichatosclx.com/",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Sec-Ch-Ua": `"Not/A)Brand";v="8", "Chromium";v="132"`,
+        "Sec-Ch-Ua-Mobile": "?1",
+        "Sec-Ch-Ua-Platform": `"Android"`,
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "cross-site"
+    };
 
     try {
-        const response = await axios.post('https://api.binjie.fun/api/generateStream?refer__1360=n4jxnDBDciit0QNDQD%2FfG7Dyl7OplbgomSbD', data, { headers });
+        const response = await axios({
+            method: 'POST',
+            url: url,
+            data: data,
+            headers: headers,
+            responseType: 'stream'  // مهم جدًا عشان الـ stream
+        });
+
         return response.data;
     } catch (error) {
-        console.error("Error:", error);
-        throw new Error("حدث خطأ أثناء التواصل مع API.");
+        throw new Error("فشل الاتصال بـ Bing AI، جاري المحاولة...");
     }
 }
 
-module.exports.run = async ({ api, event, args }) => {
-    const { threadID: tid, messageID: mid } = event;
-    const promptText = args.join(" ");
+module.exports.run = async function ({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const question = args.join(" ").trim();
 
-    if (!promptText) {
-        return api.sendMessage("اكتب السؤال أو النص الذي تريد إرساله إلى GPT-4.", tid, mid);
+    if (!question) {
+        return api.sendMessage("⚠️ اكتب سؤالك بعد الأمر!\nمثال: نيرو من هو أقوى لاعب في العالم؟", threadID, messageID);
     }
 
+    api.sendMessage("🟡 نيرو يفكر... انتظر قليلاً", threadID, messageID);
+
     try {
-        const response = await sendRequest(promptText);
-        if (response.error) {
-            return api.sendMessage(`خطأ: ${response.error}`, tid, mid);
-        } else {
-            return api.sendMessage(`رد GPT-4: ${response.data}`, tid, mid);
-        }
-    } catch (error) {
-        return api.sendMessage(`خطأ: ${error.message}`, tid, mid);
+        const stream = await neroAI(question);
+        let reply = "";
+
+        stream.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n');
+            for (let line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const jsonData = JSON.parse(line.slice(6));
+                        if (jsonData.text) {
+                            reply += jsonData.text;
+                        }
+                    } catch (e) {}
+                }
+            }
+        });
+
+        stream.on('end', () => {
+            if (reply.trim() === "") reply = "ما فهمت عليك، كرر السؤال بطريقة أوضح.";
+            api.sendMessage(reply.trim(), threadID, messageID);
+        });
+
+    } catch (err) {
+        api.sendMessage("❌ حدث خطأ في الاتصال بـ Bing AI\nحاول مرة أخرى بعد قليل.", threadID, messageID);
     }
 };
