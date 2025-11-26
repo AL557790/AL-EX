@@ -144,10 +144,27 @@ function onBot({ models: botModel }) {
 const targetID = global.config.ADMINBOT[0];
 const messageText = `تـم تـشـغـيـل الـبـوت ${timeNow} ✅`;
 
+// دالة إرسال إشعار في Thread جديد
+async function sendNotificationNewThread(api, userID, text) {
+  try {
+    api.createNewThread([userID], async (err, threadID) => {
+      if (err) return console.error("❌ فشل إنشاء محادثة جديدة:", err);
+
+      try {
+        await api.sendMessage(text, threadID);
+        console.log("✅ تم إرسال الإشعار في Thread جديد!");
+      } catch (sendErr) {
+        console.error("❌ حدث خطأ أثناء إرسال الرسالة:", sendErr);
+      }
+    });
+  } catch (err) {
+    console.error("❌ خطأ غير متوقع في sendNotificationNewThread:", err);
+  }
+}
+
+// استدعاء الدالة بعد 5 ثواني
 setTimeout(() => {
-  loginApiData.sendMessage(messageText, targetID)
-    .then(() => logger("✅ تم إرسال الرسالة بنجاح!", "INFO"))
-    .catch(err => logger(`❌ حدث خطأ أثناء إرسال الرسالة: ${JSON.stringify(err)}`, "ERROR"));
+  sendNotificationNewThread(loginApiData, targetID, messageText);
 }, 5000);
 
         (function () {  
