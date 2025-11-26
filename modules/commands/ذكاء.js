@@ -1,66 +1,67 @@
 const axios = require('axios');
 
 module.exports.config = {
-    name: "نيرو",
-    version: "2025.11.26-FIX-LANG",
+    name: "مريم",
+    version: "2025.11.26-CONTEXT",
     hasPermssion: 0,
-    credits: "𝐘-𝐀𝐍𝐁𝐔 + Language Fix",
-    description: "نيرو AI - يرد بالعربي دائمًا بدون فارسي",
-    commandCategory: "دردشة مع نيرو",
-    usages: "[سؤالك]",
-    cooldowns: 3
+    credits: "𝐘-𝐀𝐍𝐁𝐔 + ChatGPT",
+    description: "مريم - دردشة مستمرة بدون الحاجة لكتابة اسمها كل مرة",
+    commandCategory: "دردشة",
+    usages: "[رسالتك]",
+    cooldowns: 1
 };
 
+// تخزين سياق كل مستخدم
+const conversationHistory = {};
+
 module.exports.run = async function({ api, event, args }) {
-    const prompt = args.join(" ").trim();
-    if (!prompt) return api.sendMessage("اكتب سؤالك يلا!", event.threadID, event.messageID);
+    let userID = event.senderID;
+    let prompt = args.join(" ").trim();
+
+    if (!prompt) return api.sendMessage("تكلم مع مريم 🌸", event.threadID, event.messageID);
 
     api.sendTypingIndicator(event.threadID);
 
-    const API_URL = "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD";
+    // أول رسالة لازم تذكر فيها اسم مريم
+    if (!conversationHistory[userID]) {
+        if (!prompt.includes("مريم")) {
+            return api.sendMessage("أول رسالة لازم تبدأ بـ (مريم ...)", event.threadID, event.messageID);
+        }
+        prompt = prompt.replace("مريم", "").trim();
+        conversationHistory[userID] = [];
+    }
 
-    const userId = "#/chat/17" + Date.now().toString().slice(-10);
+    // حفظ الرسالة في سياق الدردشة
+    conversationHistory[userID].push({ role: "user", content: prompt });
 
-    const payload = {
-        prompt: prompt,
-        userId: userId,
-        network: true,
-        system: "رد بالعربية الفصحى دائمًا، ولا تستخدم أي لغة أخرى.",  // ← السر: يحدد اللغة
-        withoutContext: true,  // ← هذا يمنع السياق السابق (مش false)
-        stream: false
-    };
-
-    const headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/plain, */*",
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36",
-        "Origin": "https://cht18.aichatosclx.com",
-        "Referer": "https://cht18.aichatosclx.com/",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-        "sec-ch-ua": `"Not/A)Brand";v="8", "Chromium";v="132"`,
-        "sec-ch-ua-mobile": "?1",
-        "sec-ch-ua-platform": `"Android"`
-    };
+    // تجهيز المحادثة لإرسالها لـ API
+    const messages = [
+        { role: "system", content: "أنت مريم، بنت لطيفة تتكلم بالعربية فقط، وترد بشكل طبيعي وفق سياق المحادثة." },
+        ...conversationHistory[userID]
+    ];
 
     try {
-        const response = await axios.post(API_URL, payload, { headers, timeout: 35000 });
+        const response = await axios.post(
+            "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD",
+            {
+                messages: messages,
+                stream: false
+            },
+            {
+                headers: { "Content-Type": "application/json" },
+                timeout: 35000
+            }
+        );
 
-        let answer = "";
-        if (response.data?.text) {
-            answer = response.data.text;
-        } else if (typeof response.data === "string") {
-            answer = response.data;
-        } else if (response.data?.choices?.[0]) {
-            answer = response.data.choices[0].text || response.data.choices[0].message?.content || "";
-        } else {
-            answer = JSON.stringify(response.data);
-        }
+        let answer = response.data?.text || "ما فهمتش، عاود؟";
 
-        return api.sendMessage(`نيرو:\n\n${answer.trim()}`, event.threadID, event.messageID);
+        // حفظ رد مريم في السياق
+        conversationHistory[userID].push({ role: "assistant", content: answer });
 
-    } catch (error) {
-        console.error("Nero Error:", error.response?.status || error.message);
-        return api.sendMessage("الـ API وقف، جرب بعد شوية أو قول 'حدثني' للتحديث.", event.threadID, event.messageID);
+        return api.sendMessage(`مريم: ${answer}`, event.threadID, event.messageID);
+
+    } catch (err) {
+        console.error(err);
+        return api.sendMessage("الـ API واقف شوية، جرب بعد لحظات 🌸", event.threadID, event.messageID);
     }
 };
