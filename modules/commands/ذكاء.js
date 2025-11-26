@@ -5,7 +5,7 @@ module.exports.config = {
     version: "2025.11.26-HTML-PRO",
     hasPermssion: 0,
     credits: "𝐘-𝐀𝐍𝐁𝐔 + HTML Sync",
-    description: "نيرو AI - نفس قوة الـ HTML داخل البوت",
+    description: "نيرو AI - ",
     commandCategory: "دردشة مع نيرو",
     usages: "[سؤالك]",
     cooldowns: 4
