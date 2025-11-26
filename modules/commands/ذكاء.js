@@ -2,142 +2,74 @@ const axios = require('axios');
 
 module.exports.config = {
     name: "نيرو",
-    version: "2025.11.26-session",
+    version: "2025.11.26-HTML-PRO",
     hasPermssion: 0,
-    credits: "𝐘-𝐀𝐍𝐁𝐔 + Session Generator",
-    description: "نيرو",
+    credits: "𝐘-𝐀𝐍𝐁𝐔 + HTML Sync",
+    description: "نيرو AI - نفس قوة الـ HTML داخل البوت",
     commandCategory: "دردشة مع نيرو",
-    usages: "[نص]",
-    cooldowns: 5
+    usages: "[سؤالك]",
+    cooldowns: 4
 };
 
-async function generateSession() {
-    const origin = "https://cht18.aichatosclx.com";
-    const userAgent = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36";
-    
-    const session = axios.create({
-        baseURL: origin,
-        headers: {
-            "User-Agent": userAgent,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Sec-Ch-Ua": '"Not/A)Brand";v="8", "Chromium";v="132"',
-            "Sec-Ch-Ua-Mobile": "?1",
-            "Sec-Ch-Ua-Platform": '"Android"',
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "Upgrade-Insecure-Requests": "1"
-        }
-    });
+module.exports.run = async function({ api, event, args }) {
+    const prompt = args.join(" ").trim();
+    if (!prompt) return api.sendMessage("اكتب سؤالك يا معلم!", event.threadID, event.messageID);
 
-    try {
-        // خطوة 1: GET للموقع عشان جلسة (cookies/tokens)
-        await session.get('/');
+    api.sendTypingIndicator(event.threadID);
 
-        // خطوة 2: OPTIONS request للـ API عشان CORS (زي الصور)
-        const apiUrl = "https://api.binjie.fun/api/generateStream";
-        const refer = "4jRDc3eWxBqwN2bDBADr12";  // الـ refer الجديد من الصور
-        const optionsUrl = `\( {apiUrl}?refer__1360= \){refer}`;
-        
-        await axios.options(optionsUrl, {
-            headers: {
-                "Origin": origin,
-                "User-Agent": userAgent,
-                "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "content-type",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "cross-site"
-            }
-        });
+    // نفس الـ refer اللي شغال في الـ HTML
+    const API_URL = "https://api.binjie.fun/api/generateStream?refer__1360=5kSEd4fYxCrsO3cECBE s13";
 
-        // خطوة 3: توليد userId ديناميكي (بناءً على timestamp، زي الصور)
-        const timestamp = Date.now().toString().slice(-10);  // يولد رقم عشوائي/زمني
-        const userId = `#/chat/${timestamp}`;
+    // نفس الـ userId الديناميكي اللي في الـ HTML
+    const userId = "#/chat/17" + Date.now().toString().slice(-10);
 
-        console.log(`جلسة مولدة: userId=\( {userId}, refer= \){refer}`);
-
-        return { userId, refer, session };  // session للـ cookies إذا احتجنا
-    } catch (error) {
-        console.error("خطأ في توليد الجلسة:", error.message);
-        throw new Error("فشل في إنشاء الجلسة، جرب بعد دقيقة.");
-    }
-}
-
-async function sendRequest(prompt) {
-    let userId, refer;
-    try {
-        const sessionData = await generateSession();
-        userId = sessionData.userId;
-        refer = sessionData.refer;
-    } catch (error) {
-        throw error;
-    }
-
-    const data = {
+    const payload = {
         prompt: prompt,
-        userId: userId,  // الـ userId الديناميكي
+        userId: userId,
         network: true,
         system: "",
         withoutContext: false,
         stream: false
     };
 
+    // نفس الـ headers بالضبط من الـ HTML
     const headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
         "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36",
         "Origin": "https://cht18.aichatosclx.com",
-        "Referer": "https://cht18.aichatosclx.com/",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Sec-Ch-Ua": '"Not/A)Brand";v="8", "Chromium";v="132"',
-        "Sec-Ch-Ua-Mobile": "?1",
-        "Sec-Ch-Ua-Platform": '"Android"',
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "cross-site"
+        "Referer": "https://cht18.aichatosclx.com/"
     };
 
-    const url = `https://api.binjie.fun/api/generateStream?refer__1360=${refer}`;
-
     try {
-        const response = await axios.post(url, data, { headers });
-        console.log("URL المستخدمة:", url);  // عشان تحدثها لو وقفت
-        console.log("Response status:", response.status);
+        const response = await axios.post(API_URL, payload, {
+            headers: headers,
+            timeout: 30000
+        });
 
-        let answer = "";
-        if (response.data && response.data.text) {
-            answer = response.data.text;
-        } else if (response.data && typeof response.data === 'string') {
-            answer = response.data;
-        } else if (response.data.choices && response.data.choices[0]) {
-            answer = response.data.choices[0].text || response.data.choices[0].message?.content || "";
+        let answer = "ما فهمت عليك، كرر السؤال بوضوح.";
+
+        const text = response.data;
+
+        if (text?.text) {
+            answer = text.text;
+        } else if (text?.choices?.[0]?.text) {
+            answer = text.choices[0].text;
+        } else if (text?.choices?.[0]?.message?.content) {
+            answer = text.choices[0].message.content;
+        } else if (typeof text === "string") {
+            answer = text;
         }
 
-        return answer || response.data || "ما فهمت الرد، كرر السؤال.";
+        return api.sendMessage(`نيرو:\n\n${answer.trim()}`, event.threadID, event.messageID);
+
     } catch (error) {
-        console.error("Error details:", error.response?.status, error.response?.data || error.message);
-        throw new Error("حدث خطأ أثناء التواصل مع API: " + (error.response?.status || error.message));
-    }
-}
-
-module.exports.run = async ({ api, event, args }) => {
-    const { threadID: tid, messageID: mid } = event;
-    const promptText = args.join(" ");
-
-    if (!promptText) {
-        return api.sendMessage("اكتب السؤال أو النص الذي تريد إرساله إلى نيرو.", tid, mid);
-    }
-
-    api.sendMessage("🟡 نيرو يفكر... (جاري إنشاء جلسة جديدة)", tid, mid);
-
-    try {
-        const response = await sendRequest(promptText);
-        return api.sendMessage(`🤖 رد نيرو: ${response}`, tid, mid);
-    } catch (error) {
-        return api.sendMessage(`خطأ: ${error.message}\n\nجرب أرسل سؤال جديد، أو شوف console للـ URL الجديد.`, tid, mid);
+        console.error("خطأ نيرو:", error.response?.status || error.message);
+        return api.sendMessage(
+            "نيرو نايم شوية\n" +
+            "الـ refer شغال في الـ HTML بس توقف في البوت مؤقتًا\n" +
+            "جرب بعد 10 دقايق أو اكتب: حدثني وأنا أعطيك النسخة الجديدة فورًا",
+            event.threadID, event.messageID
+        );
     }
 };
