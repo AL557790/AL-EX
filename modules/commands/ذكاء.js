@@ -5,7 +5,7 @@ module.exports.config = {
     version: "2025.11.27-NERO-FIX",
     hasPermission: 0,
     credits: "Ayoub + 𝐘-𝐀𝐍𝐁𝐔",
-    description: "لونا AI - رد بالعربية دائمًا مثل نيرو",
+    description: "AI - نيرو",
     commandCategory: "خدمات",
     usages: "[سؤالك]",
     cooldowns: 3
