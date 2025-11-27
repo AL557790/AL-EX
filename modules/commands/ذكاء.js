@@ -1,61 +1,72 @@
 const axios = require('axios');
 
 module.exports.config = {
-    name: "مريم",
-    version: "2025.11.26-FINAL",
-    hasPermssion: 0,
-    credits: "ChatGPT",
-    description: "مريم - دردشة مستمرة بدون إعادة الاسم",
-    commandCategory: "دردشة",
-    usages: "[رسالتك]",
-    cooldowns: 1
+    name: "نيرو",
+    version: "2025.11.27-NERO-FIX",
+    hasPermission: 0,
+    credits: "Ayoub + 𝐘-𝐀𝐍𝐁𝐔",
+    description: "لونا AI - رد بالعربية دائمًا مثل نيرو",
+    commandCategory: "خدمات",
+    usages: "[سؤالك]",
+    cooldowns: 3
 };
 
-// تخزين آخر رسالة حتى يعرف يكمل المحادثة
-let lastPrompt = {};
-
 module.exports.run = async function({ api, event, args }) {
-    let userID = event.senderID;
+    const { threadID, messageID, messageReply } = event;
+
+    // دمج رسالة الرد إذا وجدت
     let prompt = args.join(" ").trim();
+    if (messageReply) prompt = `${messageReply.body} ${prompt}`.trim();
 
-    // لو مفيش نص → اعتبرها رد في المحادثة
-    if (!prompt) prompt = "";
-
-    // أول رسالة فقط لازم يكتب كلمة "مريم"
-    if (!lastPrompt[userID]) {
-        if (!prompt.includes("مريم")) {
-            return api.sendMessage("اكتب: مريم كيف حالك؟", event.threadID, event.messageID);
-        } else {
-            prompt = prompt.replace("مريم", "").trim();
-            if (prompt === "") prompt = "كيف حالك؟";
-        }
+    if (!prompt) {
+        return api.sendMessage("📌 اكتب سؤالك يلا!", threadID, messageID);
     }
 
-    // بعد أول رسالة → عادي مهما كتبت، يعتبره جزء من المحادثة
-    lastPrompt[userID] = prompt;
+    api.sendTypingIndicator(threadID);
 
-    api.sendTypingIndicator(event.threadID);
+    const API_URL = "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD";
+    const userId = "#/chat/17" + Date.now().toString().slice(-10);
+
+    const payload = {
+        prompt: prompt,
+        userId: userId,
+        network: true,
+        system: "رد بالعربية الفصحى دائمًا، ولا تستخدم أي لغة أخرى.",
+        withoutContext: true,
+        stream: false
+    };
+
+    const headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36",
+        "Origin": "https://cht18.aichatosclx.com",
+        "Referer": "https://cht18.aichatosclx.com/",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+        "sec-ch-ua": `"Not/A)Brand";v="8", "Chromium";v="132"`,
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": `"Android"`
+    };
 
     try {
-        const payload = {
-            prompt: prompt,
-            system: "أنت مريم، فتاة لطيفة ترد بالعربية فقط. كوني طبيعية وتابعي المحادثة حسب كلام المستخدم.",
-            withoutContext: false, // يسمح بالمتابعة
-            stream: false
-        };
+        const response = await axios.post(API_URL, payload, { headers, timeout: 35000 });
 
-        const response = await axios.post(
-            "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD",
-            payload,
-            { headers: { "Content-Type": "application/json" }, timeout: 35000 }
-        );
+        let answer = "";
+        if (response.data?.text) {
+            answer = response.data.text;
+        } else if (typeof response.data === "string") {
+            answer = response.data;
+        } else if (response.data?.choices?.[0]) {
+            answer = response.data.choices[0].text || response.data.choices[0].message?.content || "";
+        } else {
+            answer = JSON.stringify(response.data);
+        }
 
-        let answer = response.data?.text || "ما فهمتش، قولها بوضوح ♥";
+        return api.sendMessage(`➪ 𝗟𝗨𝗡𝗔 🪽\n━━━━━━━━━━━━━━\n${answer.trim()}\n━━━━━━━━━━━━━━\n✨ اتمنى يفيدك هذا الجواب`, threadID, messageID);
 
-        return api.sendMessage(`مريم: ${answer}`, event.threadID, event.messageID);
-
-    } catch (err) {
-        console.error(err);
-        return api.sendMessage("الـ API واقف شوية، جرب بعد شوية 🌸", event.threadID, event.messageID);
+    } catch (error) {
+        console.error("لونا Error:", error.response?.status || error.message);
+        return api.sendMessage("❌ الـ API وقف، جرب بعد شوية أو قول 'حدثني' للتحديث.", threadID, messageID);
     }
 };
