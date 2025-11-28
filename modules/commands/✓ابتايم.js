@@ -36,7 +36,7 @@ module.exports.run = async function({ api, event }) {
 💻 المعالج: ${cpu}
 🪟 النظام: ${platform}
 🕐 الوقت: ${time}
-👑 المطور: مصطفى
+
 ━━━━━━━━━━━━━━━`;
 
   api.sendMessage(msg, event.threadID, event.messageID);
