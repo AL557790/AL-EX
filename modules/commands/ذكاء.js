@@ -63,7 +63,7 @@ module.exports.run = async function({ api, event, args }) {
             answer = JSON.stringify(response.data);
         }
 
-        return api.sendMessage(`➪ 𝗟𝗨𝗡𝗔 🪽\n━━━━━━━━━━━━━━\n${answer.trim()}\n━━━━━━━━━━━━━━\n✨ اتمنى يفيدك هذا الجواب`, threadID, messageID);
+        return api.sendMessage(`➪ 𝐍𝐢𝐫𝐨 🪽\n━━━━━━━━━━━━━━\n${answer.trim()}\n━━━━━━━━━━━━━━\n✨ اتمنى يفيدك هذا الجواب`, threadID, messageID);
 
     } catch (error) {
         console.error("لونا Error:", error.response?.status || error.message);
