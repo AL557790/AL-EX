@@ -1,12 +1,21 @@
 #!/bin/bash
 
-echo "👉 Installing dependencies from install.txt..."
+echo "👉 Checking & installing dependencies from install.txt..."
 
 while read package || [ -n "$package" ]; do
   if [ ! -z "$package" ]; then
-    echo "📦 Installing $package ..."
-    npm install "$package"
+    echo ""
+    echo "🔍 Checking $package ..."
+
+    # هل المكتبة مثبتة مسبقًا؟
+    if npm list "$package" >/dev/null 2>&1; then
+      echo "✔️ $package is already installed. Skipping..."
+    else
+      echo "📦 Installing $package ..."
+      npm install "$package"
+    fi
   fi
 done < install.txt
 
-echo "✅ All packages installed!"
+echo ""
+echo "✅ Finished! All required packages are now installed."
