@@ -7,7 +7,7 @@ while read package || [ -n "$package" ]; do
     echo ""
     echo "🔍 Checking $package ..."
 
-    # هل المكتبة مثبتة مسبقًا؟
+    # هل المكتبة مثبتة بالفعل؟
     if npm list "$package" >/dev/null 2>&1; then
       echo "✔️ $package is already installed. Skipping..."
     else
@@ -18,4 +18,4 @@ while read package || [ -n "$package" ]; do
 done < install.txt
 
 echo ""
-echo "✅ Finished! All required packages are now installed."
+echo "✅ All required packages are installed!"
