@@ -1,5 +1,7 @@
 axios
-body-parser
-crypto
+canvas
+fs-extra
 jimp
-sqlite3
+node-superfetch
+moment
+node-fetch
