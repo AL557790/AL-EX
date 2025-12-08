@@ -1,8 +1,12 @@
 #!/bin/bash
 
-while read module; do
-  if [ ! -z "$module" ]; then
-    echo "Installing $module..."
-    npm install "$module"
+echo "👉 Installing dependencies from install.txt..."
+
+while read package || [ -n "$package" ]; do
+  if [ ! -z "$package" ]; then
+    echo "📦 Installing $package ..."
+    npm install "$package"
   fi
-done < modules.txt
+done < install.txt
+
+echo "✅ All packages installed!"
