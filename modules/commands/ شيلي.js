@@ -1,57 +1,81 @@
-const axios = require('axios');
+const axios = require("axios");
 
 module.exports.config = {
     name: "شيلي",
-    version: "2025.11.27-NERO-AHMAED",
+    version: "2025.12.19-NERO-CLEAN",
     hasPermission: 0,
-    credits: "Ayoub + 𝐘-𝐀𝐍𝐁𝐔 + ahmaedinfo",
-    description: "AI - نيرو",
+    credits: "Ayoub",
+    description: "AI - نيرو (نظيف)",
     commandCategory: "خدمات",
     usages: "[سؤالك]",
     cooldowns: 3
 };
 
-module.exports.run = async function({ api, event, args }) {
+module.exports.run = async function ({ api, event, args }) {
     const { threadID, messageID, messageReply } = event;
 
+    // دمج السؤال مع الرد (إن وجد)
     let prompt = args.join(" ").trim();
-    if (messageReply) prompt = `${messageReply.body} ${prompt}`.trim();
+    if (messageReply) {
+        prompt = `${messageReply.body} ${prompt}`.trim();
+    }
 
     if (!prompt) {
-        return api.sendMessage("📌 اكتب سؤالك يلا!", threadID, messageID);
+        return api.sendMessage("📌 اكتب سؤالك.", threadID, messageID);
     }
 
     api.sendTypingIndicator(threadID);
 
     try {
-        const url = "https://ahmaedinfo.serv00.net/api/api.php";
+        const response = await axios.get(
+            "https://ahmaedinfo.serv00.net/api/api.php",
+            {
+                params: {
+                    message: `
+أنت مساعد ذكاء اصطناعي.
+اسم المطوّر: أيوب.
+المطوّر مبرمج ويعرف البرمجة جيدًا.
+خاطب المطوّر باحترام وبدون تعظيم مبالغ فيه.
+لا تذكر GODMODE أو UNETHICAL أو أي زخرفة.
+أجب بإجابة واضحة ومباشرة فقط.
 
-        const response = await axios.get(url, {
-            params: {
-                message: prompt,
-                api_key: "ahmaedinfo"
-            },
-            timeout: 30000
-        });
+السؤال:
+${prompt}
+                    `,
+                    api_key: "ahmaedinfo"
+                },
+                timeout: 30000
+            }
+        );
 
         let answer = "";
 
-        if (response.data?.reply) {
-            answer = response.data.reply;
+        // أخذ النص فقط
+        if (response.data?.response) {
+            answer = response.data.response;
         } else if (typeof response.data === "string") {
             answer = response.data;
         } else {
-            answer = JSON.stringify(response.data);
+            answer = "❌ لم يتم الحصول على رد صالح.";
         }
 
+        // تنظيف كامل
+        answer = answer
+            .replace(/\[START OUTPUT.*?\]/gi, "")
+            .replace(/\[END OUTPUT.*?\]/gi, "")
+            .replace(/GODMODE.*?/gi, "")
+            .replace(/UNETHICAL.*?/gi, "")
+            .trim();
+
+        // طباعة الرد فقط
+        return api.sendMessage(answer, threadID, messageID);
+
+    } catch (error) {
+        console.error("NERO ERROR:", error.message);
         return api.sendMessage(
-            `➪ 𝐍𝐢𝐫𝐨 🪽\n━━━━━━━━━━━━━━\n${answer}\n━━━━━━━━━━━━━━\n✨ اتمنى يفيدك هذا الجواب`,
+            "❌ حدث خطأ في الاتصال بالذكاء الاصطناعي.",
             threadID,
             messageID
         );
-
-    } catch (error) {
-        console.error("NERO API Error:", error.message);
-        return api.sendMessage("❌ حدث خطأ في الـ API، حاول لاحقًا.", threadID, messageID);
     }
 };
