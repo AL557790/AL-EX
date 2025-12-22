@@ -2,71 +2,79 @@ const axios = require('axios');
 
 module.exports.config = {
     name: "نيرو",
-    version: "2025.11.27-NERO-FIX",
+    version: "2025.11.27-NERO-AUTO-QUESTION-ONLY",
     hasPermission: 0,
     credits: "Ayoub + 𝐘-𝐀𝐍𝐁𝐔",
-    description: "AI - نيرو",
+    description: "نيرو – يرد تلقائي على السؤال أو الرد فقط",
     commandCategory: "خدمات",
-    usages: "[سؤالك]",
-    cooldowns: 3
+    cooldowns: 0
 };
 
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, messageReply } = event;
+module.exports.handleEvent = async function({ api, event }) {
+    const { threadID, messageID, body, messageReply, senderID } = event;
 
-    // دمج رسالة الرد إذا وجدت
-    let prompt = args.join(" ").trim();
-    if (messageReply) prompt = `${messageReply.body} ${prompt}`.trim();
+    if (!body) return;
+    if (senderID === api.getCurrentUserID()) return; // تجاهل رسائل البوت نفسه
 
-    if (!prompt) {
-        return api.sendMessage("📌 اكتب سؤالك يلا!", threadID, messageID);
+    const text = body.trim();
+
+    // ✅ شرط 1: الرسالة تنتهي بـ ؟ أو ? مع أو بدون فراغ
+    const isQuestion = /[؟?]\s*$/.test(text);
+
+    // ✅ شرط 2: رد على رسالة البوت
+    const isReplyToBot =
+        messageReply &&
+        messageReply.senderID === api.getCurrentUserID();
+
+    // ❌ إذا لا سؤال ولا رد → تجاهل الرسالة
+    if (!isQuestion && !isReplyToBot) return;
+
+    // 🧠 تجهيز النص للرد
+    let prompt = text;
+    if (isReplyToBot && messageReply?.body) {
+        prompt = `${messageReply.body}\n${text}`.trim();
     }
 
     api.sendTypingIndicator(threadID);
 
-    const API_URL = "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD";
+    const API_URL =
+        "https://api.binjie.fun/api/generateStream?refer__1360=n4jxRDcDy13ewqxBqDwn2DnBDBADuDr121oD";
     const userId = "#/chat/17" + Date.now().toString().slice(-10);
 
     const payload = {
         prompt: prompt,
         userId: userId,
         network: true,
-        system: "رد بالعربية الفصحى دائمًا، ولا تستخدم أي لغة أخرى.",
-        withoutContext: true,
+        system:
+            "أنت مساعد ذكي، واصل الحوار بشكل طبيعي وواضح وبالعربية فقط.",
+        withoutContext: false,
         stream: false
     };
 
-    const headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/plain, */*",
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36",
-        "Origin": "https://cht18.aichatosclx.com",
-        "Referer": "https://cht18.aichatosclx.com/",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "ar-DZ,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-        "sec-ch-ua": `"Not/A)Brand";v="8", "Chromium";v="132"`,
-        "sec-ch-ua-mobile": "?1",
-        "sec-ch-ua-platform": `"Android"`
-    };
-
     try {
-        const response = await axios.post(API_URL, payload, { headers, timeout: 35000 });
+        const response = await axios.post(
+            API_URL,
+            payload,
+            { headers: { "Content-Type": "application/json" }, timeout: 35000 }
+        );
 
-        let answer = "";
-        if (response.data?.text) {
-            answer = response.data.text;
-        } else if (typeof response.data === "string") {
-            answer = response.data;
-        } else if (response.data?.choices?.[0]) {
-            answer = response.data.choices[0].text || response.data.choices[0].message?.content || "";
-        } else {
-            answer = JSON.stringify(response.data);
-        }
+        let answer =
+            response.data?.text ||
+            response.data?.choices?.[0]?.message?.content ||
+            "لم أفهم، هل توضح أكثر؟";
 
-        return api.sendMessage(`➪ 𝐍𝐢𝐫𝐨 🪽\n━━━━━━━━━━━━━━\n${answer.trim()}\n━━━━━━━━━━━━━━\n✨ اتمنى يفيدك هذا الجواب`, threadID, messageID);
+        return api.sendMessage(
+            `➪ 🪽\n━━━━━━━━━━━━━━\n${answer.trim()}`,
+            threadID,
+            messageID
+        );
 
     } catch (error) {
-        console.error("لونا Error:", error.response?.status || error.message);
-        return api.sendMessage("❌ الـ API وقف، جرب بعد شوية أو قول 'حدثني' للتحديث.", threadID, messageID);
+        console.error("ERROR:", error.message);
+        return api.sendMessage(
+            "❌ حدث خطأ مؤقت، حاول بعد قليل.",
+            threadID,
+            messageID
+        );
     }
 };
