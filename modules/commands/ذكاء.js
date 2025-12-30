@@ -5,7 +5,7 @@ module.exports.config = {
     version: "2025.11.27-NERO-AUTO-QUESTION-ONLY",
     hasPermission: 0,
     credits: "Ayoub + 𝐘-𝐀𝐍𝐁𝐔",
-    description: "نيرو – يرد تلقائي على السؤال أو الرد فقط",
+    description: "نيرو – يرد تلقائيًا على السؤال أو الرد فقط",
     commandCategory: "خدمات",
     cooldowns: 0
 };
@@ -16,10 +16,11 @@ module.exports.handleEvent = async function({ api, event }) {
     if (!body) return;
     if (senderID === api.getCurrentUserID()) return; // تجاهل رسائل البوت نفسه
 
-    const text = body.trim();
+    // 🧹 تنظيف النص من الفراغات الغريبة
+    const text = body.replace(/\s+/g, ' ').trim();
 
-    // ✅ شرط 1: الرسالة تنتهي بـ ؟ أو ? مع أو بدون فراغ
-    const isQuestion = /[؟?]\s*$/.test(text);
+    // ✅ شرط 1: الرسالة تنتهي بعلامة استفهام عربية أو إنجليزية
+    const isQuestion = /[؟?]$/.test(text);
 
     // ✅ شرط 2: رد على رسالة البوت
     const isReplyToBot =
@@ -29,7 +30,7 @@ module.exports.handleEvent = async function({ api, event }) {
     // ❌ إذا لا سؤال ولا رد → تجاهل الرسالة
     if (!isQuestion && !isReplyToBot) return;
 
-    // 🧠 تجهيز النص للرد
+    // 🧠 تجهيز النص للإرسال للذكاء الاصطناعي
     let prompt = text;
     if (isReplyToBot && messageReply?.body) {
         prompt = `${messageReply.body}\n${text}`.trim();
@@ -55,7 +56,10 @@ module.exports.handleEvent = async function({ api, event }) {
         const response = await axios.post(
             API_URL,
             payload,
-            { headers: { "Content-Type": "application/json" }, timeout: 35000 }
+            {
+                headers: { "Content-Type": "application/json" },
+                timeout: 35000
+            }
         );
 
         let answer =
